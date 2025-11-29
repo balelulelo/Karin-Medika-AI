@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # YUNITA AI
 
 <img width="1440" height="1024" alt="poster" src="https://github.com/user-attachments/assets/6a9eeb58-1698-4615-a7e2-4f4bd0e7a5be" />

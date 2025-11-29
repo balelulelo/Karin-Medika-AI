@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # YUNITA AI
 
 <img width="1440" height="1024" alt="poster" src="https://github.com/user-attachments/assets/6a9eeb58-1698-4615-a7e2-4f4bd0e7a5be" />
@@ -23,3 +24,4 @@ This repository is about an interactive AI Chatbot with a kind and friendly pers
 1. Python3
 2. API Key from Google Studio
 3. API Key from ElevenLabs or similar TTS API Key
+

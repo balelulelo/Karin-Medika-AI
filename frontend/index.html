@@ -3,55 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat with Yunita</title>
-    <link rel="icon" type="image/png" href="images/yunita_icon.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <title>Karin AI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <div id="main-menu-overlay">
-        <div id="main-menu">
-            <img src="images/titleimage.png" alt="Title" class="main-menu-title-image">
-            <p>Your Friendly AI Companion</p>
+    <div id="view-start">
+        <div class="hero-image-container">
+            <img src="images/background.png" alt="Karin Sitting" class="hero-image">
+        </div>
+        
+        <div class="login-card">
+            <h1 class="brand-title">KARIN AI</h1>
+            <div class="brand-subtitle-box">
+                Your AI Assistant to prevent Polypharmacy Risk
+            </div>
 
-            <div class="input-card">
-                <input type="text" id="name-input" placeholder="Enter your name to begin...">
-                <button id="start-chat-btn">Start New Chat</button>
+            <input type="text" id="name-input" placeholder="Enter Your Name...">
+            <br><br>
+            <button id="btn-to-meds" class="btn-primary">Start New Chat</button>
+        </div>
+    </div>
+
+    <div id="view-medication" class="hidden">
+        <div class="meds-card">
+            <div class="meds-header">
+                <h2 id="greeting-text">Hello {{user}}, Please tell us the medications you're about to take</h2>
+            </div>
+            
+            <div class="meds-body">
+                <div id="drug-input-container">
+                    </div>
+
+                <button id="add-drug-btn" class="btn-small">Add More +</button>
+                
+                <div style="margin-top: 20px;">
+                    <button id="btn-start-analysis" class="btn-primary">See Analysis</button>
+                </div>
             </div>
         </div>
     </div>
+
     <div id="loading-screen" class="hidden">
-        <div class="loading-text">Yunita is Getting Ready...</div>
-        <div class="loading-bar-container"> 
+        <h3>Analyzing Interactions...</h3>
+        <div class="loading-bar-container">
             <div class="loading-bar"></div>
         </div>
     </div>
 
-    <div id="app-container">
-        <div id="yunita-panel">
-            <div class="yunita-background-shape"></div>
-            <img id="yunita-image" src="images/neutral.png" alt="Yunita's Portrait">
-            <h2 id="yunita-title">Yunita</h2>
-            <p id="connection-status" class="status-dot online">Online</p>
-
-            <div id="tts-switch-container">
-                <button id="voice-off" class="voice-btn active">Voice OFF</button>
-                <button id="voice-on" class="voice-btn">Voice ON</button>
+    <div id="app-container" class="hidden">
+        
+        <div class="profile-card">
+            <div class="portrait-container">
+                <img id="karin-image" src="images/neutral.png" alt="Karin">
             </div>
-            
-            <div id="language-switcher">
-                <button id="lang-en" class="lang-btn active">EN</button>
-                <button id="lang-id" class="lang-btn">ID</button>
+            <h2>Karin</h2>
+            <div id="connection-status" style="font-size: 0.8em; color: gray;">Online</div>
+            <div id="language-switcher" style="margin-top: 10px;">
+                <button id="lang-en" class="btn-small" style="padding: 5px 10px;">EN</button>
+                <button id="lang-id" class="btn-small" style="padding: 5px 10px;">ID</button>
             </div>
         </div>
-        <div id="chat-panel">
-            <div id="chat-log"></div>
-            <div id="input-area">
-                <input type="text" id="user-input" placeholder="Say something to Yunita...">
-                <button id="send-btn">➤</button>
+
+        <div class="chat-interface">
+            <div id="chat-log">
+                </div>
+            
+            <div class="input-wrapper">
+                <input type="text" id="user-input" placeholder="Insert Text">
+                <button id="send-btn"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
     </div>

@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+google-generativeai
+python-dotenv
+pydantic
+neo4j
+flask
+flask-cors

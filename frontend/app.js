@@ -1,184 +1,301 @@
-// --- 1. GET references to our HTML elements ---
-const chatLog = document.getElementById('chat-log');
-const userInput = document.getElementById('user-input');
-const sendBtn = document.getElementById('send-btn');
-const yunitaImage = document.getElementById('yunita-image');
-const connectionStatus = document.getElementById('connection-status');
-const langEnBtn = document.getElementById('lang-en');
-const langIdBtn = document.getElementById('lang-id');
-const mainMenuOverlay = document.getElementById('main-menu-overlay');
-const nameInput = document.getElementById('name-input');
-const startChatBtn = document.getElementById('start-chat-btn');
-const loadingScreen = document.getElementById('loading-screen');
-const appContainer = document.getElementById('app-container');
+document.addEventListener('DOMContentLoaded', () => {
+    // --- REFERENSI ELEMEN ---
+    const viewStart = document.getElementById('view-start');
+    const viewMedication = document.getElementById('view-medication');
+    const appContainer = document.getElementById('app-container');
+    const loadingScreen = document.getElementById('loading-screen');
+    
+    // Elemen Kartu untuk Animasi
+    const loginCard = document.querySelector('.login-card');
+    const medsCard = document.querySelector('.meds-card');
 
-const backendUrl = 'http://127.0.0.1:8000/chat';
+    // Input & Tombol
+    const nameInput = document.getElementById('name-input');
+    const btnToMeds = document.getElementById('btn-to-meds');
+    
+    const drugContainer = document.getElementById('drug-input-container');
+    const addDrugBtn = document.getElementById('add-drug-btn');
+    const btnStartAnalysis = document.getElementById('btn-start-analysis');
+    const greetingText = document.getElementById('greeting-text');
 
-// --- State variables ---
-let chatHistory = [];
-let currentLanguage = 'en';
-let userName = 'User';
+    // Chat Elements
+    const chatLog = document.getElementById('chat-log');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const karinImage = document.getElementById('karin-image');
+    const langEnBtn = document.getElementById('lang-en');
+    const langIdBtn = document.getElementById('lang-id');
 
-// --- Core function to send a message ---
-async function sendMessage() {
-    const messageText = userInput.value.trim();
-    if (messageText) {
-        appendMessage('user', messageText);
-        chatHistory.push({ "role": "user", "parts": [messageText] });
-    }
+    // --- STATE VARIABLES ---
+    let userName = '';
+    let currentLanguage = 'en';
+    let drugList = [];
+    let chatHistory = [];
+    const backendUrl = 'http://127.0.0.1:8000/chat';
 
-    userInput.value = '';
-    userInput.disabled = true;
-    sendBtn.disabled = true;
+    // --- INISIALISASI AWAL ---
+    // Beri animasi pop-out pada kartu login saat pertama buka
+    if(loginCard) loginCard.classList.add('pop-out-enter');
 
-    try {
-        const historyToSend = messageText ? chatHistory.slice(0, -1) : chatHistory;
-        const response = await fetch(backendUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: messageText,
-                history: historyToSend,
-                language: currentLanguage,
-                userName: userName
-            }),
-        });
-
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        updateConnectionStatus(true);
-        const data = await response.json();
-
-        for (const msg of data.messages) {
-            await new Promise(resolve => setTimeout(resolve, Math.random() * 700 + 300));
-            appendMessage('yunita', msg);
-            chatHistory.push({ "role": "model", "parts": [msg] });
+    // --- 1. NAVIGASI: START -> MEDICATION LIST ---
+    btnToMeds.addEventListener('click', () => {
+        const name = nameInput.value.trim();
+        if (!name) {
+            alert("Please enter your name first!");
+            return;
         }
-        updateYunitaImage(data.emotion);
 
-    } catch (error) {
-        console.error("Error fetching from backend:", error);
-        
-        // Gunakan ternary operator untuk menentukan pesan error berdasarkan 'currentLanguage'
-        const errorMsg = currentLanguage === 'id' 
-            ? "Aduh, maaf, sepertinya ada masalah koneksi..." 
-            : "Oh, sorry, there seems to be a connection issue...";
-        
-        appendMessage('yunita', errorMsg);
-        // Nanti kalo dah ada fotonya, gw ganti jd concerned
-        updateYunitaImage('curious'); 
-        updateConnectionStatus(false);
-    }finally {
-        userInput.disabled = false;
-        sendBtn.disabled = false;
-        userInput.focus();
-    }
-}
-
-// --- Helper Functions ---
-function appendMessage(sender, text) {
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('message', sender === 'user' ? 'user-message' : 'yunita-message');
-    messageElement.textContent = text;
-    chatLog.appendChild(messageElement);
-    chatLog.scrollTop = chatLog.scrollHeight;
-}
-
-function updateYunitaImage(emotion) {
-    const validEmotions = ['neutral', 'happy', 'blushing', 'concerned', 'curious'];
-    if (validEmotions.includes(emotion)) {
-        yunitaImage.src = `images/${emotion}.png`;
-    } else {
-        yunitaImage.src = 'images/neutral.png';
-    }
-}
-
-function updateConnectionStatus(isOnline) {
-    if (isOnline) {
-        connectionStatus.textContent = 'Online';
-        connectionStatus.classList.remove('offline');
-        connectionStatus.classList.add('online');
-    } else {
-        connectionStatus.textContent = 'Offline';
-        connectionStatus.classList.remove('online');
-        connectionStatus.classList.add('offline');
-    }
-}
-
-// --- Application Flow Functions ---
-function startNewChat(lang) {
-    currentLanguage = lang;
-    chatLog.innerHTML = '';
-    
-    langEnBtn.classList.toggle('active', lang === 'en');
-    langIdBtn.classList.toggle('active', lang === 'id');
-    userInput.placeholder = lang === 'id' ? `Ayo mulai ngobrol sama Yunita...` : `Say something to Yunita...`;
-
-    const initialMessage = lang === 'id' 
-        ? `Halo, ${userName}! Senang bertemu denganmu. Ada yang bisa aku bantu?` 
-        : `Hello, ${userName}! It's so nice to see you. What can I help you with?`;
-        
-    appendMessage('yunita', initialMessage);
-    chatHistory = [{ "role": "model", "parts": [initialMessage] }];
-}
-
-function transitionToApp() {
-
-    document.body.classList.add('in-chat');
-    // 1. Mulai transisi fade-out untuk menu utama
-    mainMenuOverlay.style.opacity = 0;
-    
-    // 2. Setelah transisi menu selesai, tampilkan layar loading
-    setTimeout(() => {
-        mainMenuOverlay.style.display = 'none';
-        loadingScreen.classList.remove('hidden');
-        
-        // 3. Tunggu animasi loading selesai (misal, 2.5 detik)
-        setTimeout(() => {
-            // 4. Mulai transisi fade-out untuk layar loading
-            loadingScreen.classList.add('fade-out');
-            
-            // 5. Tampilkan container aplikasi utama dan mulai transisi fade-in
-            appContainer.classList.remove('hidden');
-            // Sedikit delay untuk memastikan transisi dimulai setelah .hidden dihilangkan
-            setTimeout(() => {
-                appContainer.classList.add('visible');
-            }, 50);
-
-            // 6. Setelah transisi loading selesai, sembunyikan elemennya agar tidak mengganggu
-            setTimeout(() => {
-                loadingScreen.style.display = 'none';
-                userInput.focus(); // Fokus ke input setelah semua transisi selesai
-            }, 800); // Harus cocok dengan durasi transisi di CSS (0.8s)
-
-        }, 2500); // Durasi layar loading ditampilkan
-    }, 500); // Harus cocok dengan durasi transisi menu di CSS (0.5s)
-}
-
-// --- Event Listeners ---
-sendBtn.addEventListener('click', sendMessage);
-userInput.addEventListener('keypress', (event) => {
-    if (event.key === 'Enter') sendMessage();
-});
-
-langEnBtn.addEventListener('click', () => startNewChat('en'));
-langIdBtn.addEventListener('click', () => startNewChat('id'));
-
-startChatBtn.addEventListener('click', () => {
-    const name = nameInput.value.trim();
-    if (name) {
         userName = name;
-        startNewChat('en'); // Default ke English saat pertama mulai
-        transitionToApp();
-    } else {
-        alert("Mana Nama Kau lah Vro ?");
-    }
-});
+        
+        // Update teks sapaan
+        const text = currentLanguage === 'id' 
+            ? `Halo ${userName}, Sebutkan obat apa saja yang akan kamu minum`
+            : `Hello ${userName}, Please tell us the medications you're about to take`;
+        if(greetingText) greetingText.textContent = text;
 
-// --- Initial Setup ---
-window.onload = () => {
-    // Sembunyikan elemen yang tidak seharusnya terlihat di awal
-    appContainer.classList.add('hidden');
-    loadingScreen.classList.add('hidden');
-    nameInput.focus();
-};
+        // Transisi Halaman
+        viewStart.classList.add('hidden');
+        viewMedication.classList.remove('hidden');
+
+        // Tambahkan animasi pop-out ke kartu obat
+        if(medsCard) {
+            medsCard.classList.remove('pop-out-enter'); // Reset dulu biar bisa trigger ulang
+            void medsCard.offsetWidth; // Trigger reflow (trik CSS)
+            medsCard.classList.add('pop-out-enter');
+        }
+
+        // Generate input obat default jika kosong
+        if (drugContainer.children.length === 0) {
+            addDrugInput();
+            addDrugInput();
+        }
+    });
+
+    // --- 2. LOGIKA TAMBAH OBAT (FIXED) ---
+    function addDrugInput() {
+        const currentCount = document.querySelectorAll('.drug-input').length;
+        if (currentCount >= 6) {
+            alert("You can add up to 6 medications only.");
+            return;
+        }
+
+        // Buat Wrapper
+        const wrapper = document.createElement('div');
+        wrapper.classList.add('drug-input-wrapper');
+
+        // Buat Input Field
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.classList.add('drug-input'); // Class penting untuk selector nanti
+        input.placeholder = `Medication ${currentCount + 1}...`;
+        input.style.flex = "1"; // Agar input memenuhi ruang
+        input.style.marginBottom = "0"; // Reset margin bawaan styles.css jika ada
+
+        // Tombol Hapus (X)
+        const removeBtn = document.createElement('button');
+        removeBtn.classList.add('remove-drug-btn');
+        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        removeBtn.onclick = () => wrapper.remove();
+
+        // Gabungkan
+        wrapper.appendChild(input);
+        // Hanya tampilkan tombol hapus jika bukan input pertama/kedua (opsional)
+        // Atau tampilkan selalu agar user bebas menghapus
+        wrapper.appendChild(removeBtn);
+
+        drugContainer.appendChild(wrapper);
+        
+        // Fokus ke input baru
+        input.focus();
+    }
+
+    // Pasang Event Listener ke Tombol Add More
+    if(addDrugBtn) {
+        addDrugBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // Mencegah form submit jika ada tag <form>
+            addDrugInput();
+        });
+    }
+
+    // --- 3. NAVIGASI: MEDICATION -> CHAT (ANALYSIS) ---
+    if(btnStartAnalysis) {
+        btnStartAnalysis.addEventListener('click', async () => {
+            // Ambil semua value dari input yang punya class .drug-input
+            const inputs = document.querySelectorAll('.drug-input');
+            drugList = [];
+            
+            inputs.forEach(input => {
+                const val = input.value.trim();
+                if (val) drugList.push(val);
+            });
+
+            if (drugList.length === 0) {
+                alert("Please enter at least one medication.");
+                return;
+            }
+
+            // Transisi ke Loading
+            viewMedication.classList.add('hidden');
+            loadingScreen.classList.remove('hidden');
+
+            // Mulai sesi chat di background
+            await startChatSession();
+        });
+    }
+
+    // --- 4. LOGIKA CHAT & BACKEND ---
+    async function startChatSession() {
+        // Siapkan pesan intro tersembunyi
+        const introMsg = currentLanguage === 'id' 
+            ? `Halo Karin. Nama saya ${userName}. Saya mengonsumsi obat-obatan ini: ${drugList.join(', ')}. Tolong analisis interaksi dan efek sampingnya.`
+            : `Hi Karin. My name is ${userName}. I am taking these medications: ${drugList.join(', ')}. Please analyze the interactions and side effects.`;
+
+        // Masukkan ke history backend (tapi tidak ditampilkan di UI user)
+        chatHistory.push({ "role": "user", "parts": [introMsg] });
+
+        try {
+            const response = await fetch(backendUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: introMsg, 
+                    history: [],
+                    language: currentLanguage,
+                    userName: userName
+                }),
+            });
+
+            if (!response.ok) throw new Error("Network Error");
+            const data = await response.json();
+
+            // Selesai Loading -> Tampilkan Chat
+            loadingScreen.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+            
+            // Tambahkan animasi pop-out ke panel chat
+            const profileCard = document.querySelector('.profile-card');
+            const chatInterface = document.querySelector('.chat-interface');
+            if(profileCard) profileCard.classList.add('pop-out-enter');
+            if(chatInterface) chatInterface.classList.add('pop-out-enter');
+
+            // Tampilkan Balasan Karin
+            for (const msg of data.messages) {
+                appendMessage('karin', msg);
+                chatHistory.push({ "role": "model", "parts": [msg] });
+            }
+            updateKarinImage(data.emotion);
+
+        } catch (error) {
+            console.error(error);
+            loadingScreen.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+            appendMessage('karin', "Maaf, koneksi ke server gagal. Pastikan backend Python berjalan.");
+        }
+    }
+
+    async function sendMessage() {
+        const messageText = userInput.value.trim();
+        if (!messageText) return;
+
+        appendMessage('user', messageText);
+        userInput.value = '';
+        userInput.disabled = true;
+        sendBtn.disabled = true;
+
+        chatHistory.push({ "role": "user", "parts": [messageText] });
+
+        try {
+            const response = await fetch(backendUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: messageText,
+                    history: chatHistory.slice(0, -1),
+                    language: currentLanguage,
+                    userName: userName
+                }),
+            });
+
+            const data = await response.json();
+            for (const msg of data.messages) {
+                appendMessage('karin', msg);
+                chatHistory.push({ "role": "model", "parts": [msg] });
+            }
+            updateKarinImage(data.emotion);
+
+        } catch (error) {
+            appendMessage('karin', "Error connecting to server.");
+        } finally {
+            userInput.disabled = false;
+            sendBtn.disabled = false;
+            userInput.focus();
+        }
+    }
+
+    // --- 5. BAHASA & UI UPDATE ---
+    function updateUIForLanguage() {
+        // Update tampilan tombol aktif
+        if(langEnBtn && langIdBtn) {
+            if (currentLanguage === 'en') {
+                langEnBtn.style.fontWeight = 'bold';
+                langEnBtn.style.textDecoration = 'underline';
+                langIdBtn.style.fontWeight = 'normal';
+                langIdBtn.style.textDecoration = 'none';
+                if(userInput) userInput.placeholder = "Type a message to Karin...";
+            } else {
+                langIdBtn.style.fontWeight = 'bold';
+                langIdBtn.style.textDecoration = 'underline';
+                langEnBtn.style.fontWeight = 'normal';
+                langEnBtn.style.textDecoration = 'none';
+                if(userInput) userInput.placeholder = "Ketik pesan untuk Karin...";
+            }
+        }
+    }
+
+    // Event Listener untuk Tombol Bahasa
+    if(langEnBtn) {
+        langEnBtn.addEventListener('click', () => { 
+            currentLanguage = 'en'; 
+            updateUIForLanguage();
+        });
+    }
+
+    if(langIdBtn) {
+        langIdBtn.addEventListener('click', () => { 
+            currentLanguage = 'id'; 
+            updateUIForLanguage();
+        });
+    }
+
+    // Panggil sekali saat start untuk set default
+    updateUIForLanguage();
+
+    // --- HELPER FUNCTIONS ---
+    function appendMessage(sender, text) {
+        const div = document.createElement('div');
+        div.classList.add('message', sender === 'user' ? 'user-message' : 'karin-message');
+        div.innerHTML = text.replace(/\n/g, '<br>');
+        chatLog.appendChild(div);
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function updateKarinImage(emotion) {
+        const valid = ['neutral', 'happy', 'blushing', 'concerned', 'curious'];
+        const imgName = valid.includes(emotion) ? emotion : 'neutral';
+        if(karinImage) karinImage.src = `images/${imgName}.png`;
+    }
+
+    // --- EVENT LISTENERS TAMBAHAN ---
+    if(sendBtn) sendBtn.addEventListener('click', sendMessage);
+    if(userInput) userInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
+    
+    // Switcher Bahasa
+    if(langEnBtn) langEnBtn.addEventListener('click', () => { 
+        currentLanguage = 'en'; 
+        langEnBtn.style.fontWeight = 'bold'; langIdBtn.style.fontWeight = 'normal';
+    });
+    if(langIdBtn) langIdBtn.addEventListener('click', () => { 
+        currentLanguage = 'id'; 
+        langIdBtn.style.fontWeight = 'bold'; langEnBtn.style.fontWeight = 'normal';
+    });
+});

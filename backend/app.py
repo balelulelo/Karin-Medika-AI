@@ -3,15 +3,13 @@ import requests
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 from dotenv import load_dotenv
-from core_logic import get_yunita_response, PROMPTS
+from core_logic import get_karin_response, PROMPTS
 
-# Muat environment variables dari file .env
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# Endpoint untuk chat teks (tidak berubah)
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.json
@@ -21,10 +19,7 @@ def chat():
     user_name = data.get('userName', 'User')
 
     if not user_message.strip():
-        if language == 'id':
-            user_message = "..."
-        else:
-            user_message = "..."
+        user_message = "..."
 
     system_prompt_template = PROMPTS[language]
     system_prompt_text = f"Your user's name is {user_name}. {system_prompt_template}"
@@ -32,11 +27,12 @@ def chat():
     system_prompt = {'role': 'user', 'parts': [system_prompt_text]}
     full_history = [system_prompt] + history_from_frontend
 
-    message, emotion = get_yunita_response(user_message, full_history, language)
+    # Panggil fungsi Karin
+    message, emotion = get_karin_response(user_message, full_history, language)
+    
     messages = [m.strip() for m in message.split('||')]
     response = {"messages": messages, "emotion": emotion}
     return jsonify(response)
-
 # --- ENDPOINT BARU UNTUK TEXT-TO-SPEECH ---
 @app.route('/generate-audio', methods=['POST'])
 def generate_audio():

@@ -1,487 +1,349 @@
-/* ---- Import & Global Styles ---- */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
 
 :root {
-    --light-blue: rgba(181, 226, 255, 1);
-    --dark-blue: #023E8A;
+    --bg-color: #BDE0FE;       /* Biru Muda Latar */
+    --primary-color: #3E4C7A;  /* Biru Tua (Tombol/Header) */
     --white: #FFFFFF;
-    --dark-grey: #495057;
-    --panel-bg: rgba(255, 255, 255, 0.8);
+    --card-radius: 30px;
+    --input-radius: 50px;
 }
 
 body {
-    font-family: 'Nunito', sans-serif; 
+    font-family: 'Nunito', sans-serif;
     margin: 0;
-    padding: 20px;
+    padding: 0;
+    background-color: var(--bg-color);
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: rgba(181, 226, 255, 1);
-    background-image: url('images/background.png'); 
-    background-size: 1300px; 
-    background-position: center; 
-    background-repeat: no-repeat; 
-
-    box-sizing: border-box;
     overflow: hidden;
 }
 
-body.in-chat {
-    background: linear-gradient(45deg, var(--light-blue), #c2e9fb);
-}
+/* --- UTILITIES --- */
+.hidden { display: none !important; }
 
-/* ---- Main Two-Panel Container ---- */
-#app-container {
-    width: 95%;
-    max-width: 1200px;
-    height: 90vh;
-    display: flex; /* This creates the side-by-side layout! */
-    gap: 20px;
-    background: var(--panel-bg);
-    border-radius: 25px; /* Bubbly corners */
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    opacity: 0; /* Mulai dengan transparan untuk fade-in */
-    transition: opacity 0.8s ease-in-out;
-}
-
-#app-container.visible {
-    opacity: 1; /* Kelas untuk memicu animasi fade-in */
-}
-
-
-/* ---- Left Panel: Yunita's Display ---- */
-#yunita-panel {
-    flex: 0.8; /* Takes up slightly less space */
+/* --- 1. START PAGE STYLING (Gambar 1) --- */
+#view-start {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0px; /* Gambar dan Card nempel/tumpuk */
+    width: 90%;
+    max-width: 1000px;
+}
+
+/* Gambar Karin Duduk */
+.hero-image-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    z-index: 2; /* Agar gambar di atas card sedikit */
+}
+
+.hero-image {
+    max-height: 500px;
+    width: auto;
+    /* Sedikit shadow biar pop-out */
+    filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1)); 
+}
+
+/* Card Login di Kanan */
+.login-card {
+    flex: 0.8;
+    background: rgba(255, 255, 255, 0.6); /* Transparan dikit kayak gambar */
+    backdrop-filter: blur(10px);
+    padding: 40px;
+    border-radius: var(--card-radius);
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    border: 2px solid #fff;
+    margin-left: -50px; /* Efek overlap */
+    z-index: 1;
+}
+
+.brand-title {
+    font-size: 3em;
+    font-weight: 900;
+    color: var(--primary-color);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    /* Efek stroke putih kayak di gambar */
+    text-shadow: 2px 2px 0px #fff; 
+}
+
+.brand-subtitle-box {
+    background-color: var(--primary-color);
+    color: var(--white);
+    padding: 10px 20px;
+    border-radius: 15px;
+    display: inline-block;
+    margin-bottom: 30px;
+    font-weight: 700;
+    font-size: 0.9em;
+}
+
+/* --- 2. MEDICATION LIST STYLING (Gambar 2) --- */
+#view-medication {
+    display: flex;
     justify-content: center;
     align-items: center;
-    padding: 30px;
-    position: relative;
-    overflow: hidden;
-    text-align: center;
-    border-right: 1px solid rgba(255, 255, 255, 0.2);
+    width: 100%;
 }
 
-/* Creative background shape */
-.yunita-background-shape {
-    position: absolute;
-    width: 250%;
-    height: 150%;
-    background: radial-gradient(circle, rgba(2, 62, 138, 0.15) 0%, rgba(181, 226, 255, 0.1) 70%);
-    border-radius: 50%;
-    z-index: -1;
-    animation: pulse 10s infinite ease-in-out;
+.meds-card {
+    background: var(--white);
+    border-radius: var(--card-radius);
+    width: 90%;
+    max-width: 500px;
+    overflow: hidden; /* Biar header gak keluar radius */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    border: 5px solid #E0F2FE; /* Outline biru muda tipis */
 }
 
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
-#yunita-image {
-    width: 120%;
-    max-width: 350px;
-    border-radius: 30px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    margin-bottom: 20px;
-    animation: float 6s infinite ease-in-out; /* Fun floating animation */
-}
-
-@keyframes float {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-15px); }
-    100% { transform: translateY(0px); }
-}
-
-#yunita-panel h2 {
-    color: var(--dark-blue);
-    font-size: 2.5em;
-    margin: 10px 0 5px 0;
-}
-
-.status-dot.online {
-    color: var(--dark-grey);
-    font-size: 1em;
-    background-color: #70e000; /* Cheerful green dot */
-    padding: 2px 10px;
-    border-radius: 12px;
-    display: inline-block;
-    transition: all 0.3s ease;
-}
-
-.status-dot.offline {
+.meds-header {
+    background-color: var(--primary-color);
     color: var(--white);
-    font-size: 1em;
-    background-color: #d90429; /* Bright red for offline */
-    padding: 2px 10px;
-    border-radius: 12px;
-    display: inline-block;
-    transition: all 0.3s ease;
+    padding: 30px;
+    text-align: center;
 }
 
-/* ---- Right Panel: Chat Interface ---- */
-#chat-panel {
-    flex: 1.2; /* Takes up slightly more space */
+.meds-header h2 {
+    margin: 0;
+    font-size: 1.2em;
+    line-height: 1.5;
+}
+
+.meds-body {
+    padding: 30px;
     display: flex;
     flex-direction: column;
+    gap: 15px;
+}
+
+/* Input Styles (Pill Shape) */
+input[type="text"] {
+    width: 100%;
+    padding: 15px 25px;
+    border: 2px solid var(--primary-color);
+    border-radius: var(--input-radius);
+    font-family: 'Nunito', sans-serif;
+    font-size: 1em;
+    outline: none;
+    box-sizing: border-box;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--primary-color);
+    color: var(--white);
+    border: none;
+    padding: 15px 30px;
+    border-radius: var(--input-radius);
+    font-size: 1.1em;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    transition: transform 0.2s;
+}
+
+.btn-primary:hover {
+    transform: scale(1.02);
+}
+
+.btn-small {
+    background-color: var(--primary-color);
+    color: var(--white);
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--input-radius);
+    font-weight: 700;
+    cursor: pointer;
+    align-self: flex-start; /* Ke kiri */
+    display: inline-block;
+    width: auto;
+}
+
+/* --- 3. CHAT PAGE STYLING (Gambar 3) --- */
+#app-container {
+    display: flex;
+    gap: 20px;
+    width: 90%;
+    max-width: 1100px;
+    height: 85vh;
+}
+
+/* Panel Kiri (Portrait) */
+.profile-card {
+    background: var(--white);
+    border: 8px solid var(--primary-color); /* Border tebal biru tua */
+    border-radius: var(--card-radius);
+    flex: 0.8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     padding: 20px;
+}
+
+.portrait-container {
+    border: 2px solid var(--primary-color);
+    padding: 10px;
+    border-radius: 10px; /* Frame kotak di dalam */
+    margin-bottom: 10px;
+}
+
+#karin-image {
+    width: 100%;
+    max-width: 250px;
+    border-radius: 10px;
+}
+
+.profile-card h2 {
+    font-weight: 900;
+    color: #333;
+    margin-top: 10px;
+}
+
+/* Panel Kanan (Chat) */
+.chat-interface {
+    flex: 1.2;
+    background: var(--white);
+    border: 8px solid var(--primary-color); /* Border tebal biru tua */
+    border-radius: var(--card-radius);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    padding: 10px; /* Padding dalam frame */
 }
 
 #chat-log {
     flex-grow: 1;
     overflow-y: auto;
-    padding: 10px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 15px; /* More space between bubbles */
+    gap: 15px;
 }
 
-/* Custom scrollbar for anime feel */
-#chat-log::-webkit-scrollbar { width: 8px; }
-#chat-log::-webkit-scrollbar-track { background: transparent; }
-#chat-log::-webkit-scrollbar-thumb { background: rgba(2, 62, 138, 0.3); border-radius: 4px; }
-#chat-log::-webkit-scrollbar-thumb:hover { background: rgba(2, 62, 138, 0.5); }
-
-
-.message {
-    padding: 12px 18px;
-    border-radius: 20px;
-    max-width: 80%;
-    font-size: 1em;
-    line-height: 1.5;
-    animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bubbly pop-in animation */
-}
-
-@keyframes pop-in {
-    0% { transform: scale(0.5); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-.user-message {
-    background-color: var(--dark-blue);
-    color: var(--white);
-    align-self: flex-end;
-    border-bottom-right-radius: 5px;
-}
-
-.yunita-message {
-    background-color: var(--white);
-    color: var(--dark-blue);
-    align-self: flex-start;
-    border-bottom-left-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-#input-area {
+/* Input Area (Bawah) */
+.input-wrapper {
+    margin: 10px;
+    border: 3px solid #90C8FC; /* Border biru muda */
+    border-radius: var(--input-radius);
+    padding: 5px;
     display: flex;
-    padding-top: 20px;
-    border-top: 1px solid rgba(2, 62, 138, 0.1);
+    align-items: center;
+    background: var(--white);
 }
 
 #user-input {
-    flex-grow: 1;
     border: none;
-    background: var(--white);
-    padding: 15px 20px;
-    border-radius: 25px;
-    font-size: 1em;
-    font-family: 'Nunito', sans-serif;
-    color: var(--dark-grey);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    flex-grow: 1;
+    padding: 10px 20px;
 }
-
-#user-input:focus { outline: 2px solid var(--light-blue); }
 
 #send-btn {
-    background-color: var(--dark-blue);
-    color: var(--white);
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
     border: none;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    font-size: 1.5em;
     cursor: pointer;
-    margin-left: 10px;
-    transition: all 0.2s ease;
-}
-
-#send-btn:hover { background-color: #0077B6; transform: scale(1.1); }
-
-/* ---- Main Menu ---- */
-#main-menu-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: transparent;
+    font-size: 1.2em;
     display: flex;
-    justify-content: flex-end;
     align-items: center;
-    padding-right: 10%;
-    z-index: 200;
-    opacity: 1;
-    transition: opacity 0.5s ease;
+    justify-content: center;
 }
 
-#main-menu {
-    background-color: rgba(170, 218, 255, 0.7);
-    padding: 280px 50px;
-    border-radius: 25px;
-    text-align: center;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    backdrop-filter: blur(10px);
-    width: 90%;
-    max-width: 400px;
-    transform: scale(0.9);
-    animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    margin-right: 70px;
-    justify-content: flex-start;
-    font-family: 'Nunito', sans-serif;
-    font-weight: 700;
-    font-size: 1.5em;
-    padding-top: 70px;
-} 
-
-/* .menu-yunita-avatar {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    border: 3px solid var(--white);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    margin-bottom: 10px;
-} */
-
-.main-menu-title-image {
-    max-width: 400px; /* Atur lebar maksimal gambar judul */
-    height: auto;
-    margin-top: 10px;
-    margin-bottom: 20px;
-}
-
-#main-menu p {
-    color: var(--white);
-    background-color: var(--dark-blue);
-    padding: 10px 20px;
+/* Bubble Chat Style */
+.karin-message {
+    background-color: #A2D2FF; /* Biru muda bubble */
+    color: #000;
+    padding: 20px;
     border-radius: 20px;
-    margin-top: 0;
-    margin-bottom: 50px;
+    border-top-left-radius: 5px;
+    max-width: 90%;
 }
 
-#name-input {
-    display: block;
-    width: calc(100% - 24px);
-    margin: 20px 0;
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 10px;
-    font-family: 'Nunito', sans-serif;
-    font-size: 1em;
-}
-
-.input-card {
-    background-color: rgba(255, 255, 255, 0.8);
-    padding: 30px;
-    border-radius: 25px;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
-    width: 85%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px; /* Jarak antara input dan tombol */
-}
-
-#start-chat-btn {
-    width: 100%;
-    background-color: var(--dark-blue);
+.user-message {
+    background-color: var(--primary-color);
     color: var(--white);
-    border: none;
-    padding: 15px 30px;
-    font-size: 1.1em;
-    font-weight: 700;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-bottom: 10px;
+    padding: 15px;
+    border-radius: 20px;
+    border-bottom-right-radius: 5px;
+    align-self: flex-end;
+    max-width: 80%;
 }
 
-#start-chat-btn:hover, #load-chat-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(2, 62, 138, 0.3);
-}
-
-#load-chat-btn.secondary {
-    background-color: transparent;
-    color: var(--dark-blue);
-    border: 2px solid var(--dark-blue);
-}
-
-#load-chat-btn:disabled {
-    background-color: #ccc;
-    border-color: #ccc;
-    color: #666;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-/* --- Loading Screen Styles --- */
+/* Loading Screen */
 #loading-screen {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    /* background: linear-gradient(45deg, var(--light-blue), #c2e9fb); */
-/* 
-    background: rgba(181, 226, 255, 1); */
-    background-image: url('images/faiz.jpeg'); 
-    background-size: 300px; 
-    background-position: 1350px 600px; 
-    background-repeat: no-repeat;
-
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--bg-color);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 199;
-    opacity: 1;
-    transition: opacity 0.8s ease-in-out;
+    z-index: 100;
 }
-
-#loading-screen.hidden {
-    display: none;
-}
-
-#loading-screen.fade-out {
-    opacity: 0;
-}
-
-.loading-text {
-    color: var(--dark-blue);
-    font-size: 1.5em;
-    font-weight: 700;
-    margin-bottom: 25px;
-    animation: breathing 2s infinite ease-in-out;
-}
-
-@keyframes breathing {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
 .loading-bar-container {
-    width: 70%;
-    max-width: 400px;
-    height: 15px; /* Bar lebih besar */
-    background-color: rgba(255, 255, 255, 0.5);
-    border-radius: 10px;
-    overflow: hidden;
+    width: 200px; height: 10px; background: #fff; border-radius: 5px; margin-top: 10px;
 }
-
 .loading-bar {
-    width: 0;
-    height: 100%;
-    background-color: var(--dark-blue);
-    border-radius: 10px;
-    animation: load 2s ease-out forwards;
+    height: 100%; background: var(--primary-color); width: 0%; animation: load 2s ease forwards; border-radius: 5px;
+}
+@keyframes load { to { width: 100%; } }
+
+/* --- ANIMATIONS --- */
+@keyframes popOut {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
-@keyframes load {
-    from { width: 0; }
-    to { width: 100%; }
+/* Class ini akan kita tambahkan via JS saat pindah halaman */
+.pop-out-enter {
+    animation: popOut 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-/* Language Switcher Styles */
-
-#language-switcher {
-    position: absolute;
-    bottom: 20px; /* Posisi di paling bawah panel */
-    display: flex;
-    gap: 10px;
-    background-color: rgba(255, 255, 255, 0.7);
-    padding: 5px;
-    border-radius: 25px;
-}
-
-/* #language-switcher {
-    position: absolute;
-    bottom: 20px;
-    display: flex;
-    gap: 10px;
-    background-color: rgba(255, 255, 255, 0.7);
-    padding: 5px;
-    border-radius: 25px;
-} */
-
-.lang-btn {
-    border: 2px solid transparent;
-    background-color: transparent;
-    color: var(--dark-blue);
-    padding: 8px 18px;
-    font-family: 'Nunito', sans-serif;
-    font-weight: 700;
-    font-size: 0.9em;
-    border-radius: 20px;
-    cursor: pointer;
+/* Pastikan kartu login dan meds card punya transisi halus */
+.login-card, .meds-card {
+    /* ... style lama tetap ... */
     transition: all 0.3s ease;
 }
 
-.lang-btn:hover {
-    background-color: rgba(2, 62, 138, 0.1);
-}
-
-.lang-btn.active {
-    background-color: var(--dark-blue);
-    color: var(--white);
-    border-color: var(--dark-blue);
-}
-
-/* Kontainer untuk Tombol TTS */
-#tts-switch-container {
-    position: absolute;
-    bottom: 85px; /* Posisikan di atas language switcher */
+/* Style tambahan untuk input obat yang baru ditambahkan agar ada animasinya juga */
+.drug-input-wrapper {
     display: flex;
+    align-items: center;
     gap: 10px;
-    background-color: rgba(255, 255, 255, 0.7);
-    padding: 5px;
-    border-radius: 25px;
+    margin-bottom: 10px;
+    animation: popOut 0.3s ease forwards; /* Input baru akan pop-out juga */
 }
 
-/* Penataan Tombol Suara (meniru .lang-btn) */
-.voice-btn {
-    border: 2px solid transparent;
-    background-color: transparent;
-    color: var(--dark-blue);
-    padding: 8px 18px;
-    font-family: 'Nunito', sans-serif;
-    font-weight: 700;
-    font-size: 0.9em;
-    border-radius: 20px;
+.remove-drug-btn {
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px; 
+    height: 30px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.2s;
 }
 
-.voice-btn:hover {
-    background-color: rgba(2, 62, 138, 0.1);
-}
-
-.voice-btn.active {
-    background-color: var(--dark-blue);
-    color: var(--white);
-    border-color: var(--dark-blue);
-}
-
-
-/* Penyesuaian Posisi Language Switcher */
-#language-switcher {
-    position: absolute;
-    bottom: 20px;
+.remove-drug-btn:hover {
+    transform: scale(1.1);
 }

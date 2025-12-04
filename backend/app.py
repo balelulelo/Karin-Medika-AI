@@ -3,7 +3,7 @@ import requests
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 from dotenv import load_dotenv
-from core_logic import get_karin_response, PROMPTS
+from core_logic import get_karin_response, KARIN_PROMPT
 
 load_dotenv()
 
@@ -18,21 +18,24 @@ def chat():
     language = data.get('language', 'en')
     user_name = data.get('userName', 'User')
 
+    drug_list = data.get('drugList', [])
+
     if not user_message.strip():
         user_message = "..."
 
-    system_prompt_template = PROMPTS[language]
-    system_prompt_text = f"Your user's name is {user_name}. {system_prompt_template}"
+    # Use the single English prompt
+    system_prompt_text = f"Your user's name is {user_name}. {KARIN_PROMPT}"
     
     system_prompt = {'role': 'user', 'parts': [system_prompt_text]}
     full_history = [system_prompt] + history_from_frontend
 
-    # Panggil fungsi Karin
-    message, emotion = get_karin_response(user_message, full_history, language)
+    # Call Karin Logic
+    message, emotion = get_karin_response(user_message, full_history, language, drug_list)
     
     messages = [m.strip() for m in message.split('||')]
     response = {"messages": messages, "emotion": emotion}
     return jsonify(response)
+
 # --- ENDPOINT BARU UNTUK TEXT-TO-SPEECH ---
 @app.route('/generate-audio', methods=['POST'])
 def generate_audio():

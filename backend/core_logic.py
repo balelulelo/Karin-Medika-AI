@@ -13,7 +13,7 @@ except KeyError:
     print("ERROR: GOOGLE_API_KEY not found. Please check your .env file.")
     exit()
 
-# --- KARIN'S PERSONALITY PROMPTS (Medical Version) ---
+# --- KARIN'S PERSONALITY PROMPTS ---
 
 PROMPTS = {
     "en": """

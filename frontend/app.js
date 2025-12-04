@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function appendMessage(sender, text) {
         const div = document.createElement('div');
         div.classList.add('message', sender === 'user' ? 'user-message' : 'karin-message');
-        div.innerHTML = text.replace(/\n/g, '<br>');
+        div.innerHTML = text;
         chatLog.appendChild(div);
         chatLog.scrollTop = chatLog.scrollHeight;
     }

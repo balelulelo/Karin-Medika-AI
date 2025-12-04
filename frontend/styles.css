@@ -347,3 +347,27 @@ input[type="text"] {
 .remove-drug-btn:hover {
     transform: scale(1.1);
 }
+
+/* --- FORMATTING CHAT HTML --- */
+
+/* Pastikan list ada padding agar bullet point terlihat di dalam bubble */
+.message ul {
+    margin: 5px 0;
+    padding-left: 20px;
+    text-align: left;
+}
+
+.message li {
+    margin-bottom: 5px;
+}
+
+/* Bold text styling */
+.message b, .message strong {
+    font-weight: 800;
+    color: inherit; /* Ikuti warna teks user/karin */
+}
+
+/* Jarak antar paragraf jika ada <br><br> atau <p> */
+.message p {
+    margin: 5px 0;
+}

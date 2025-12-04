@@ -1,3 +1,6 @@
+# we dont actually need this file anymore, but keeping it for reference
+
+
 import os
 import csv
 from neo4j import GraphDatabase

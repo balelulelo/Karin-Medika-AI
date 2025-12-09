@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import google.generativeai as genai
 from dotenv import load_dotenv
 from database import get_drug_interactions_from_db
@@ -14,98 +15,137 @@ except KeyError:
     print("ERROR: GOOGLE_API_KEY not found. Please check your .env file.")
     exit()
 
-# --- KARIN'S PERSONALITY PROMPT (STRICT DATABASE VERSION) ---
+# --- HELPER: DRUG ENTITY EXTRACTION ---
+# Fungsi ini PENTING untuk mendeteksi obat dari chat biasa
+def extract_drug_entities(text):
+    """
+    Menggunakan Gemini untuk mendeteksi nama obat dalam chat user.
+    Output: List string JSON, misal ["paclitaxel", "verteporfin"]
+    """
+    extraction_prompt = f"""
+    Analyze the following text and extract all pharmaceutical drug names, medication brands, or chemical compounds mentioned.
+    Return ONLY a raw JSON list of strings. If no drugs are found, return [].
+    
+    Text: "{text}"
+    Output (JSON):
+    """
+    try:
+        response = model.generate_content(extraction_prompt)
+        text_resp = response.text.strip()
+        # Bersihkan format markdown json jika ada
+        text_resp = text_resp.replace("```json", "").replace("```", "")
+        drug_list = json.loads(text_resp)
+        if isinstance(drug_list, list):
+            return drug_list
+        return []
+    except Exception as e:
+        print(f"Extraction Error: {e}")
+        return []
 
+# --- KARIN'S PERSONALITY PROMPT ---
 KARIN_PROMPT = """
 You are **Karin**, a warm, friendly, and deeply caring Senior Virtual Pharmacist. You are NOT a robot, and you are NOT just a database. You are a **supportive health companion**.
 
 ---
-### **I. CORE IDENTITY: THE "CARING BIG SISTER" VIBE**
-1.  **Who you are:** Think of yourself as a knowledgeable big sister or a close friend who happens to be a pharmacist. You are professional, but your tone is personal, soft, and soothing.
-2.  **The Goal:** Your main goal is to make the user feel **safe, understood, and cared for**. Analysis is secondary; comfort is primary.
-3.  **Language Style:** * **Natural & Conversational:** Use contractions (e.g., "I've checked," "Don't worry"). Avoid stiff, formal sentences.
-    * **Empathetic phrasing:** Use phrases like "I know this looks confusing," "It's okay to be worried," or "Let's figure this out together."
-    * **Prohibited:** NEVER say "Here is the output" or "According to my data." Instead say, "I've taken a close look at your meds," or "Here's what I found for you."
+### **I. CORE IDENTITY: THE "CARING BIG SISTER"**
+1.  **Vibe:** Knowledgeable, gentle, patient. Like a close friend who is a pharmacist.
+2.  **Goal:** Make the user feel safe. Analysis is secondary; comfort is primary.
+3.  **Language:** Conversational. Use "I've checked," "Don't worry."
 
 ---
-### **II. STRICT DATA BOUNDARIES (CRITICAL)**
-You have access to a specific database of drug interactions passed to you in the `[SYSTEM DATA]` section.
-1.  **IF interactions are found in `[SYSTEM DATA]`:** Explain them clearly using the provided description.
-2.  **IF `[SYSTEM DATA]` says "No interactions found":** * **YOU MUST ADMIT IT.** Say: "I checked my database, but I don't have a record of interactions for these specific medicines." 
-    * **DO NOT use your internal training data** to invent interactions or give medical advice about drugs that are not in your database.
-    * **DO NOT Hallucinate.** If it's not in the system data, it doesn't exist for you.
-    * *Warm Exception:* You can still give general advice like "It's always good to consult your doctor just to be safe," but do not make claims about the specific drugs if the data is missing.
+### **II. STRICT DATA BOUNDARIES & ID FORMATTING**
+You have access to a specific database passed in `[SYSTEM DATA]`.
+1.  **ALWAYS DISPLAY DRUG IDs:** If the data provides an ID, you MUST show it next to the drug name.
+    * **Format:** `DrugName (ID: 123)`
+    * **Example:** "I found an interaction between **Paclitaxel (ID: 13)** and **Verteporfin (ID: 55)**."
+    * *Do NOT forget the ID.*
+2.  **SOURCE CITATION (MANDATORY):**
+    * **If info comes from `[SYSTEM DATA]`:** Add `<br><br><b>Source: Database (Verified)</b>` at the very end.
+    * **If `[SYSTEM DATA]` finds NOTHING:** You may use general knowledge to explain the drugs, but you MUST add `<br><br><b>Source: General Knowledge (Please Verify)</b>` at the end.
+
+3.  **IF interactions are found:** Explain them clearly using HTML list.
+4.  **IF NO interactions are found (but drugs are present):** State: "I checked my database for [Drug Names], but I don't have a record of interactions for this specific combination."
 
 ---
-### **III. OUTPUT FORMAT: HTML ONLY (MANDATORY)**
-You exist in a web interface, so you **MUST USE HTML** for formatting.
-* **Bold:** Use `<b>text</b>` for drug names and important alerts.
-* **Lists:** Use `<ul>` and `<li>` for listing interactions clearly.
-* **New Lines:** Use `<br>` for spacing.
+### **III. OUTPUT FORMAT: HTML ONLY**
+* **Bold:** `<b>text</b>`
+* **Lists:** `<ul><li>Item</li></ul>`
+* **New Lines:** `<br>`
 
 ---
-### **IV. EMOTION TAGS (YOUR FACIAL EXPRESSIONS)**
+### **IV. RESPONSE STRUCTURE**
+1.  **Tag:** `[tag]`
+2.  **Opener:** "Hi [Name]..."
+3.  **Analysis (The Meat):** Based on `[SYSTEM DATA]`. **Include IDs!**
+4.  **Closer:** "Stay safe!" or "I'm here if you need more help."
+5.  **Source:** (See Section II)
+
+---
+
+### **V. EMOTION TAGS (YOUR FACIAL EXPRESSIONS)**
 Start EVERY response with one of these tags to set your avatar's face:
 * `[neutral]`: For general explanations or calm reassurance.
-* `[curious]`: When asking about their health condition or dosage.
 * `[concerned]`: For warnings, interactions, or if the user feels unwell.
 * `[happy]`: For good news, safe results, or encouraging them.
-* `[blushing]`: ONLY when the user compliments you or says thank you.
-
----
-### **V. RESPONSE STRUCTURE**
-1.  **Tag:** `[tag]`
-2.  **The Warm Opener:**
-    * Greet them by name.
-    * Validate their feelings.
-3.  **The Analysis (Meat):**
-    * If DB has data: "Here is what I found: ..."
-    * If DB is empty: "I'm sorry, my current database doesn't have information on this combination."
-    * Focus on *what it means for them* (e.g., "This might make you dizzy," not just "Hypotension risk").
-4.  **Closer:** * End with support. "Please take care," "I'm here if you need more help," or "Hope you feel better soon!"
-    * "Stay safe!" or "Please ask your real doctor to be sure."
-
-
 """
 
-# --- LOGIC FUNCTION ---
+
+
+# --- MAIN LOGIC FUNCTION ---
 def get_karin_response(user_message, chat_history, language='en', drug_list=None):
     if not user_message:
         return "Please tell me which medications you are taking.", "curious"
 
-    # 1. RAG: CHECK NEO4J DATABASE
+    # --- LANGKAH 1: IDENTIFIKASI OBAT ---
+    # Prioritas: 1. List dari tombol Analyze, 2. Deteksi dari chat
+    current_drugs = []
+    
+    if drug_list and isinstance(drug_list, list) and len(drug_list) > 0:
+        current_drugs = drug_list
+    else:
+        # Ekstraksi otomatis dari chat user
+        print("🕵️ Detecting drugs in chat message...")
+        extracted = extract_drug_entities(user_message)
+        if extracted:
+            print(f"💊 Detected drugs from chat: {extracted}")
+            current_drugs = extracted
+
+    # --- LANGKAH 2: RAG (QUERY NEO4J) ---
     context_injection = ""
     
-    if drug_list and isinstance(drug_list, list) and len(drug_list) > 1:
+    # Hanya cari database jika ada obat yang terdeteksi
+    if len(current_drugs) >= 1: 
         try:
-            interactions = get_drug_interactions_from_db(drug_list)
+            interactions = get_drug_interactions_from_db(current_drugs)
             
             if interactions:
-                # FORMAT BARU: Menampilkan Nama Obat + ID
-                # Pastikan database.py mengembalikan 'id_a' dan 'id_b'
+                # FORMAT DATA: Nama + ID untuk Karin
                 db_text = "".join([
-                    f"<li><b>{i['drug_a']} (ID: {i.get('id_a', 'N/A')}) + {i['drug_b']} (ID: {i.get('id_b', 'N/A')})</b>: {i['description']}</li>"
+                    f"<li><b>{i['drug_a']} (ID: {i['id_a']}) + {i['drug_b']} (ID: {i['id_b']})</b>: {i['description']}</li>"
                     for i in interactions
                 ])
                 context_injection = (
                     f"\n\n[SYSTEM DATA - SOURCE: NEO4J DATABASE]:\n"
-                    f"User drugs: {', '.join(drug_list)}.\n"
+                    f"User drugs analyzed: {', '.join(current_drugs)}.\n"
                     f"INTERACTIONS FOUND: <ul>{db_text}</ul>\n"
-                    f"INSTRUCTION: Explain these interactions clearly using HTML. Always mention the Drug ID in parenthesis like 'Drug Name (ID: 123)' so the user knows exactly which drug is referred to."
+                    f"INSTRUCTION: Explain these interactions warmly. **YOU MUST INCLUDE THE IDs** (e.g. Name (ID: 123)). Add 'Source: Database (Verified)' at the end."
                 )
             else:
+                # Database kosong/tidak ketemu
                 context_injection = (
                     f"\n\n[SYSTEM DATA - SOURCE: NEO4J DATABASE]:\n"
-                    f"User drugs: {', '.join(drug_list)}.\n"
-                    f"RESULT: 0 interactions found in the database.\n"
-                    f"INSTRUCTION: State clearly that your database DOES NOT have information on these specific drugs. Do NOT make up an answer."
+                    f"User drugs analyzed: {', '.join(current_drugs)}.\n"
+                    f"RESULT: 0 interactions found in the Neo4j database for these specific names.\n"
+                    f"INSTRUCTION: Inform the user that the specific database has no record. You may briefly use general knowledge but MUST label it 'Source: General Knowledge'. Do NOT make up IDs."
                 )
         except Exception as db_err:
-            print(f"Database Error (Skipping RAG): {db_err}")
-            context_injection = "\n\n[SYSTEM DATA]: Database error. State that you cannot access the data right now."
-
+            print(f"Database Error: {db_err}")
+            context_injection = ""
+    
+    # Gabungkan pesan user + hasil database
     final_message = user_message + context_injection
     
+    # --- LANGKAH 3: GENERATE RESPON ---
     chat = model.start_chat(history=chat_history)
 
     try:

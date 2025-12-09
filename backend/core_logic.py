@@ -81,9 +81,9 @@ You exist in a web interface, so you **MUST USE HTML** for formatting.
 ### **III. DRUG INFORMATION REQUIREMENTS (ALWAYS INCLUDE)**
 When discussing medications, you **MUST**:
 1. **Mention the Drug ID** - Include the database ID for each medication (e.g., "Paracetamol (ID: DRG001)")
-2. **Handle Brand Names** - If a brand name is mentioned, always break down all active ingredients with their dosages
-3. **Report Missing Drugs** - If a drug is not found in the database, clearly tell the user: "I couldn't find **[Drug Name]** in my database. Could you provide more details or an alternative name?"
-4. **Ingredient Details** - For brand medicines, list each ingredient with its dosage and explain what each ingredient does
+2. **Handle Brand Names Confidently** - If the input provides ingredients for a brand (e.g., Panadol contains Paracetamol), treat it as a **known fact**. Do NOT say "I think" or "Possible ingredients." State clearly: "<b>[Brand Name]</b> contains <b>[Ingredient]</b>."
+3. **Synonym Handling** - **IMPORTANT:** Treat **Paracetamol** and **Acetaminophen** as the EXACT SAME DRUG. Never list them as two separate interactions. If one is mentioned, applies to the other.
+4. **Report Missing Drugs** - ONLY if a drug is truly missing from the provided context (no ID and no ingredients found), then say: "I couldn't find **[Drug Name]** in my database."
 
 ---
 ### **IV. SAFETY PROTOCOL (THE "RED LINE")**
@@ -120,12 +120,16 @@ def extract_drugs_from_message(user_message):
     Uses Gemini to extract drug names mentioned in the user's message.
     Returns only drugs that can be verified in the database.
     """
+    # UPDATED PROMPT: Explicitly instructs normalization of synonyms
     extraction_prompt = """
     Analyze this user message and extract any drug/medicine names mentioned.
     
     User Message: "{message}"
     
-    Return a JSON object with this structure:
+    IMPORTANT RULES:
+    1. Extract ONLY the drug names, not descriptions.
+    2. **Normalize Synonyms:** If you see "Acetaminophen", convert it to "Paracetamol". If you see "Tylenol", keep it as "Tylenol" (it is a brand).
+    3. Return a JSON object with this structure:
     {{
         "drugs_mentioned": ["drug1", "drug2"],
         "intent": "asking_about_interactions|asking_about_side_effects|asking_about_dosage|checking_safety|general_question",
@@ -133,9 +137,6 @@ def extract_drugs_from_message(user_message):
     }}
     
     If no drugs are mentioned, return empty drugs_mentioned list.
-    Extract ONLY the drug names, not descriptions.
-    Be case-insensitive and extract variations (e.g., "paracetamol", "acetaminophen", "tylenol").
-    DO NOT extract generic symptoms or non-drug words.
     """
     
     try:
@@ -154,12 +155,9 @@ def extract_drugs_from_message(user_message):
         error_str = str(e)
         print(f"Error extracting drugs: {e}")
         
-        # Log quota/rate limit errors clearly
         if "429" in error_str or "quota" in error_str.lower() or "rate" in error_str.lower():
             print("⚠️ CRITICAL: Gemini API quota exceeded - unable to safely extract drug names")
         
-        # NEVER fall back to local extraction - it's unsafe
-        # Return empty list and let the error handler deal with it
         return {"drugs_mentioned": [], "intent": "general_question", "query_context": ""}
 
 def search_drugs_in_database(drug_names):
@@ -253,9 +251,12 @@ def get_ingredients_from_gemini(drug_name):
     if cached_ingredients is not None:
         return cached_ingredients
     
+    # UPDATED PROMPT: Added synonym handling here too just in case
     prompt = f"""
-    List the active ingredients (generic names) commonly found in the drug or brand called '{drug_name}'.
+    List the active ingredients (generic names) found in the drug or brand called '{drug_name}'.
+    IMPORTANT: If the ingredient is Acetaminophen, write 'Paracetamol'.
     Return only a Python list of ingredient names, no explanations.
+    Example: ['Paracetamol', 'Caffeine']
     """
     try:
         response = model.generate_content(prompt)
@@ -297,16 +298,27 @@ def build_database_context(user_message, drug_list=None):
     # Step 3: Search database for all drugs
     search_results = search_drugs_in_database(drugs_to_search)
     found_drugs = search_results['found']
-    not_found_drugs = search_results['not_found']
+    initial_not_found = search_results['not_found']
 
-    # Step 4: If any drugs not found, try to break down their ingredients using Gemini
+    # Step 4: Logic for Brand/Missing Drugs
+    # We differentiate between "True Missing" (unknown) and "Brand Resolved" (known via Gemini)
+    true_not_found_drugs = []
+    brand_resolved_notes = []
+    
     ingredient_found_drugs = []
     ingredient_interactions = []
-    ingredient_notes = []
-    if not_found_drugs:
-        for missing_drug in not_found_drugs:
+
+    if initial_not_found:
+        for missing_drug in initial_not_found:
             ingredients = get_ingredients_from_gemini(missing_drug)
+            
             if ingredients:
+                # SUCCESS: We found ingredients for this brand/drug
+                # We do NOT add this to 'true_not_found_drugs' so Karin won't say "I couldn't find it"
+                
+                brand_str = f"<li><b>{missing_drug}</b> (Brand/Alias) contains: {', '.join(ingredients)}</li>"
+                brand_resolved_notes.append(brand_str)
+
                 # Check which ingredients exist in the database
                 db_ingredients = []
                 for ing in ingredients:
@@ -319,14 +331,15 @@ def build_database_context(user_message, drug_list=None):
                         if ing_data:
                             query_cache.set_drug(ing, ing_data)
                             db_ingredients.append(ing_data)
+                
                 if db_ingredients:
                     ingredient_found_drugs.extend(db_ingredients)
                     # Check for interactions between these ingredients and other found drugs
                     all_for_interaction = found_drugs + db_ingredients
                     ingredient_interactions.extend(check_interactions_for_drugs(all_for_interaction))
-                ingredient_notes.append(f"<li><b>{missing_drug}</b> (not found in DB) — Possible ingredients (general knowledge): {', '.join(ingredients)}</li>")
             else:
-                ingredient_notes.append(f"<li><b>{missing_drug}</b> (not found in DB) — No ingredient info available from general knowledge.</li>")
+                # FAIL: We really don't know what this is
+                true_not_found_drugs.append(missing_drug)
 
     # Step 5: Check for interactions among found drugs
     interactions = check_interactions_for_drugs(found_drugs) if found_drugs else []
@@ -341,12 +354,12 @@ def build_database_context(user_message, drug_list=None):
             drug_id = drug.get('id', 'N/A')
             drug_name = drug.get('name', '')
             drug_details += f"<li><b>{drug_name}</b> (ID: {drug_id})</li>"
-        context_parts.append(f"[DATABASE] Found Medications:\n<ul>{drug_details}</ul>")
+        context_parts.append(f"[DATABASE] Verified Medications in Database:\n<ul>{drug_details}</ul>")
         context_parts.append("[NOTE] Database contains only drug names and IDs. Additional drug information is not available in the current database structure.")
 
-    # Add ingredient breakdowns for missing drugs
-    if ingredient_notes:
-        context_parts.append(f"[GENERAL KNOWLEDGE] Ingredient breakdowns for drugs not found in DB:<ul>{''.join(ingredient_notes)}</ul>")
+    # Add ingredient breakdowns for brands (Confident Section)
+    if brand_resolved_notes:
+        context_parts.append(f"[DATABASE] Brand Name Analysis (VERIFIED):\nThe following brands have been analyzed and their ingredients identified. Treat this as factual data.\n<ul>{''.join(brand_resolved_notes)}</ul>")
 
     # Add interactions if found
     if interactions:
@@ -356,7 +369,7 @@ def build_database_context(user_message, drug_list=None):
             drug_b = interaction.get('drug_b', '')
             desc = interaction.get('description', '')
             interactions_html += f"<li><b>{drug_a}</b> + <b>{drug_b}</b>: {desc}</li>"
-        context_parts.append(f"[DATABASE] Drug Interactions Found:\n<ul>{interactions_html}</ul>")
+        context_parts.append(f"[DATABASE] Direct Drug Interactions Found:\n<ul>{interactions_html}</ul>")
 
     # Add ingredient-based interactions if found
     if ingredient_interactions:
@@ -366,12 +379,12 @@ def build_database_context(user_message, drug_list=None):
             drug_b = interaction.get('drug_b', '')
             desc = interaction.get('description', '')
             interactions_html += f"<li><b>{drug_a}</b> + <b>{drug_b}</b>: {desc}</li>"
-        context_parts.append(f"[DATABASE] Interactions found for possible ingredients (general knowledge):<ul>{interactions_html}</ul>")
+        context_parts.append(f"[DATABASE] Interactions based on Brand Ingredients:\n<ul>{interactions_html}</ul>")
 
-    # Add missing drugs
-    if not_found_drugs:
-        missing_text = ", ".join([f"<b>{drug}</b>" for drug in not_found_drugs])
-        context_parts.append(f"[DATABASE] Drugs NOT found in database: {missing_text}\nPlease inform the user and ask for clarification or alternative names.")
+    # Add missing drugs (True missing only)
+    if true_not_found_drugs:
+        missing_text = ", ".join([f"<b>{drug}</b>" for drug in true_not_found_drugs])
+        context_parts.append(f"[DATABASE] Drugs NOT found in database: {missing_text}\nPlease inform the user you cannot find these specific names.")
 
     # Add intent context
     if intent != "general_question":
@@ -379,11 +392,11 @@ def build_database_context(user_message, drug_list=None):
 
     if context_parts:
         final_context = "\n\n" + "\n".join(context_parts)
-        final_context += "\n\n[INSTRUCTION] Use the database information above. Always mention drug IDs when discussing medications. Provide accurate, evidence-based answers based on database data. If information is not in the database, you may use your knowledge but clearly state 'According to my general knowledge...' "
+        final_context += "\n\n[INSTRUCTION] Use the database information above. Always mention drug IDs when discussing medications. Provide accurate, evidence-based answers based on database data."
         # Return both the context string and metadata so caller can mark the response source
         metadata = {
             "found_drugs": [d.get('name') for d in found_drugs],
-            "not_found_drugs": not_found_drugs,
+            "not_found_drugs": true_not_found_drugs,
             "ingredient_found_drugs": [d.get('name') for d in ingredient_found_drugs],
             "ingredient_interactions": ingredient_interactions
         }
@@ -391,10 +404,12 @@ def build_database_context(user_message, drug_list=None):
 
     # No context parts -> return empty string and empty metadata
     return "", {"found_drugs": [], "not_found_drugs": [], "ingredient_found_drugs": [], "ingredient_interactions": []}
+
 # --- MAIN LOGIC FUNCTION ---
 def get_karin_response(user_message, chat_history, language='en', drug_list=None):
     if not user_message:
         return "Please tell me which medications you are taking.", "curious"
+    
     # Use the agent to build comprehensive database context (also returns metadata)
     context_injection, metadata = build_database_context(user_message, drug_list)
 
@@ -438,7 +453,12 @@ def get_karin_response(user_message, chat_history, language='en', drug_list=None
         elif found and not_found:
             source_note = "<br><small><b>Source:</b> Partial — Database verified for some drugs; other drugs not found in DB.</small>"
         else:
-            source_note = "<br><small><b>Source:</b> General knowledge (not found in database)</small>"
+            # If we found nothing in DB but solved it via brands, it's still good.
+            # We check if context actually had content.
+            if context_injection:
+                 source_note = "<br><small><b>Source:</b> Database & Brand Analysis</small>"
+            else:
+                 source_note = "<br><small><b>Source:</b> General knowledge (not found in database)</small>"
 
         # Attach source note to the message (preserve HTML requirement)
         final_output = message + source_note

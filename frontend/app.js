@@ -1,23 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- REFERENSI ELEMEN ---
+    // --- ELEMENT REFERENCES ---
     const viewStart = document.getElementById('view-start');
-    const viewMedication = document.getElementById('view-medication');
+    const viewMedication = document.getElementById('view-medication'); // We will skip this
     const appContainer = document.getElementById('app-container');
     const loadingScreen = document.getElementById('loading-screen');
     
-    // Elemen Kartu untuk Animasi
+    // Cards for animation
     const loginCard = document.querySelector('.login-card');
-    const medsCard = document.querySelector('.meds-card');
 
-    // Input & Tombol
+    // Inputs & Buttons
     const nameInput = document.getElementById('name-input');
-    const btnToMeds = document.getElementById('btn-to-meds');
+    const btnToMeds = document.getElementById('btn-to-meds'); // This now starts the chat directly
     
-    const drugContainer = document.getElementById('drug-input-container');
-    const addDrugBtn = document.getElementById('add-drug-btn');
-    const btnStartAnalysis = document.getElementById('btn-start-analysis');
-    const greetingText = document.getElementById('greeting-text');
-
     // Chat Elements
     const chatLog = document.getElementById('chat-log');
     const userInput = document.getElementById('user-input');
@@ -29,16 +23,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- STATE VARIABLES ---
     let userName = '';
     let currentLanguage = 'en';
-    let drugList = [];
     let chatHistory = [];
     const backendUrl = 'http://127.0.0.1:8000/chat';
 
-    // --- INISIALISASI AWAL ---
-    // Beri animasi pop-out pada kartu login saat pertama buka
+    // --- INITIAL ANIMATION ---
     if(loginCard) loginCard.classList.add('pop-out-enter');
 
-    // --- 1. NAVIGASI: START -> MEDICATION LIST ---
-    btnToMeds.addEventListener('click', () => {
+    // --- 1. NAVIGATION: START -> CHAT (DIRECTLY) ---
+    btnToMeds.addEventListener('click', async () => {
         const name = nameInput.value.trim();
         if (!name) {
             alert("Please enter your name first!");
@@ -46,111 +38,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         userName = name;
-        
-        // Update teks sapaan
-        const text = currentLanguage === 'id' 
-            ? `Halo ${userName}, Sebutkan obat apa saja yang akan kamu minum`
-            : `Hello ${userName}, Please tell us the medications you're about to take`;
-        if(greetingText) greetingText.textContent = text;
 
-        // Transisi Halaman
+        // Hide Start Screen
         viewStart.classList.add('hidden');
-        viewMedication.classList.remove('hidden');
+        
+        // Ensure Meds view is hidden (just in case)
+        if(viewMedication) viewMedication.classList.add('hidden');
 
-        // Tambahkan animasi pop-out ke kartu obat
-        if(medsCard) {
-            medsCard.classList.remove('pop-out-enter'); // Reset dulu biar bisa trigger ulang
-            void medsCard.offsetWidth; // Trigger reflow (trik CSS)
-            medsCard.classList.add('pop-out-enter');
-        }
+        // Show Loading Screen
+        loadingScreen.classList.remove('hidden');
 
-        // Generate input obat default jika kosong
-        if (drugContainer.children.length === 0) {
-            addDrugInput();
-            addDrugInput();
-        }
+        // Start the Chat immediately
+        await startChatSession();
     });
 
-    // --- 2. LOGIKA TAMBAH OBAT (FIXED) ---
-    function addDrugInput() {
-        const currentCount = document.querySelectorAll('.drug-input').length;
-        if (currentCount >= 6) {
-            alert("You can add up to 6 medications only.");
-            return;
-        }
-
-        // Buat Wrapper
-        const wrapper = document.createElement('div');
-        wrapper.classList.add('drug-input-wrapper');
-
-        // Buat Input Field
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.classList.add('drug-input'); // Class penting untuk selector nanti
-        input.placeholder = `Medication ${currentCount + 1}...`;
-        input.style.flex = "1"; // Agar input memenuhi ruang
-        input.style.marginBottom = "0"; // Reset margin bawaan styles.css jika ada
-
-        // Tombol Hapus (X)
-        const removeBtn = document.createElement('button');
-        removeBtn.classList.add('remove-drug-btn');
-        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
-        removeBtn.onclick = () => wrapper.remove();
-
-        // Gabungkan
-        wrapper.appendChild(input);
-        // Hanya tampilkan tombol hapus jika bukan input pertama/kedua (opsional)
-        // Atau tampilkan selalu agar user bebas menghapus
-        wrapper.appendChild(removeBtn);
-
-        drugContainer.appendChild(wrapper);
-        
-        // Fokus ke input baru
-        input.focus();
-    }
-
-    // Pasang Event Listener ke Tombol Add More
-    if(addDrugBtn) {
-        addDrugBtn.addEventListener('click', (e) => {
-            e.preventDefault(); // Mencegah form submit jika ada tag <form>
-            addDrugInput();
-        });
-    }
-
-    // --- 3. NAVIGASI: MEDICATION -> CHAT (ANALYSIS) ---
-    if(btnStartAnalysis) {
-        btnStartAnalysis.addEventListener('click', async () => {
-            // Ambil semua value dari input yang punya class .drug-input
-            const inputs = document.querySelectorAll('.drug-input');
-            drugList = [];
-            
-            inputs.forEach(input => {
-                const val = input.value.trim();
-                if (val) drugList.push(val);
-            });
-
-            if (drugList.length === 0) {
-                alert("Please enter at least one medication.");
-                return;
-            }
-
-            // Transisi ke Loading
-            viewMedication.classList.add('hidden');
-            loadingScreen.classList.remove('hidden');
-
-            // Mulai sesi chat di background
-            await startChatSession();
-        });
-    }
-
-    // --- 4. LOGIKA CHAT & BACKEND ---
+    // --- 2. LOGIC: START CHAT SESSION ---
     async function startChatSession() {
-        // Siapkan pesan intro tersembunyi
+        // Generic Intro Message (Since we have no drugs list yet)
         const introMsg = currentLanguage === 'id' 
-            ? `Halo Karin. Nama saya ${userName}. Saya mengonsumsi obat-obatan ini: ${drugList.join(', ')}. Tolong analisis interaksi dan efek sampingnya.`
-            : `Hi Karin. My name is ${userName}. I am taking these medications: ${drugList.join(', ')}. Please analyze the interactions and side effects.`;
+            ? `Halo Karin. Nama saya ${userName}. Saya ingin berkonsultasi mengenai kesehatan atau obat-obatan.`
+            : `Hi Karin. My name is ${userName}. I would like to consult about my health or medications.`;
 
-        // Masukkan ke history backend (tapi tidak ditampilkan di UI user)
+        // Add to history (internal only)
         chatHistory.push({ "role": "user", "parts": [introMsg] });
 
         try {
@@ -168,17 +77,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error("Network Error");
             const data = await response.json();
 
-            // Selesai Loading -> Tampilkan Chat
+            // Hide Loading -> Show Chat
             loadingScreen.classList.add('hidden');
             appContainer.classList.remove('hidden');
             
-            // Tambahkan animasi pop-out ke panel chat
+            // Animate Chat Entry
             const profileCard = document.querySelector('.profile-card');
             const chatInterface = document.querySelector('.chat-interface');
             if(profileCard) profileCard.classList.add('pop-out-enter');
             if(chatInterface) chatInterface.classList.add('pop-out-enter');
 
-            // Tampilkan Balasan Karin
+            // Display Karin's Response
             for (const msg of data.messages) {
                 appendMessage('karin', msg);
                 chatHistory.push({ "role": "model", "parts": [msg] });
@@ -189,10 +98,11 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(error);
             loadingScreen.classList.add('hidden');
             appContainer.classList.remove('hidden');
-            appendMessage('karin', "Maaf, koneksi ke server gagal. Pastikan backend Python berjalan.");
+            appendMessage('karin', "Error connecting to server. Is the Python backend running?");
         }
     }
 
+    // --- 3. SEND MESSAGE LOGIC ---
     async function sendMessage() {
         const messageText = userInput.value.trim();
         if (!messageText) return;
@@ -232,9 +142,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 5. BAHASA & UI UPDATE ---
+    // --- 4. LANGUAGE & UI HELPERS ---
     function updateUIForLanguage() {
-        // Update tampilan tombol aktif
         if(langEnBtn && langIdBtn) {
             if (currentLanguage === 'en') {
                 langEnBtn.style.fontWeight = 'bold';
@@ -252,25 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Event Listener untuk Tombol Bahasa
-    if(langEnBtn) {
-        langEnBtn.addEventListener('click', () => { 
-            currentLanguage = 'en'; 
-            updateUIForLanguage();
-        });
-    }
-
-    if(langIdBtn) {
-        langIdBtn.addEventListener('click', () => { 
-            currentLanguage = 'id'; 
-            updateUIForLanguage();
-        });
-    }
-
-    // Panggil sekali saat start untuk set default
-    updateUIForLanguage();
-
-    // --- HELPER FUNCTIONS ---
     function appendMessage(sender, text) {
         const div = document.createElement('div');
         div.classList.add('message', sender === 'user' ? 'user-message' : 'karin-message');
@@ -285,17 +175,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if(karinImage) karinImage.src = `images/${imgName}.png`;
     }
 
-    // --- EVENT LISTENERS TAMBAHAN ---
+    // --- EVENT LISTENERS ---
     if(sendBtn) sendBtn.addEventListener('click', sendMessage);
     if(userInput) userInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
     
-    // Switcher Bahasa
     if(langEnBtn) langEnBtn.addEventListener('click', () => { 
-        currentLanguage = 'en'; 
-        langEnBtn.style.fontWeight = 'bold'; langIdBtn.style.fontWeight = 'normal';
+        currentLanguage = 'en'; updateUIForLanguage(); 
     });
     if(langIdBtn) langIdBtn.addEventListener('click', () => { 
-        currentLanguage = 'id'; 
-        langIdBtn.style.fontWeight = 'bold'; langEnBtn.style.fontWeight = 'normal';
+        currentLanguage = 'id'; updateUIForLanguage(); 
     });
+
+    updateUIForLanguage();
 });

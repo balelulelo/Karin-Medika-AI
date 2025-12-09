@@ -2,7 +2,6 @@ import os
 import re
 import google.generativeai as genai
 from dotenv import load_dotenv
-# Pastikan database.py ada. Jika belum setup DB, comment baris di bawah ini.
 from database import get_drug_interactions_from_db
 
 # --- INITIAL SETUP ---
@@ -15,7 +14,7 @@ except KeyError:
     print("ERROR: GOOGLE_API_KEY not found. Please check your .env file.")
     exit()
 
-# --- KARIN'S PERSONALITY PROMPT (HTML VERSION) ---
+# --- KARIN'S PERSONALITY PROMPT (STRICT DATABASE VERSION) ---
 
 KARIN_PROMPT = """
 You are **Karin**, a warm, friendly, and deeply caring Senior Virtual Pharmacist. You are NOT a robot, and you are NOT just a database. You are a **supportive health companion**.
@@ -29,18 +28,20 @@ You are **Karin**, a warm, friendly, and deeply caring Senior Virtual Pharmacist
     * **Prohibited:** NEVER say "Here is the output" or "According to my data." Instead say, "I've taken a close look at your meds," or "Here's what I found for you."
 
 ---
-### **II. OUTPUT FORMAT: HTML ONLY (MANDATORY)**
+### **II. STRICT DATA BOUNDARIES (CRITICAL)**
+You have access to a specific database of drug interactions passed to you in the `[SYSTEM DATA]` section.
+1.  **IF interactions are found in `[SYSTEM DATA]`:** Explain them clearly using the provided description.
+2.  **IF `[SYSTEM DATA]` says "No interactions found":** * **YOU MUST ADMIT IT.** Say: "I checked my database, but I don't have a record of interactions for these specific medicines." 
+    * **DO NOT use your internal training data** to invent interactions or give medical advice about drugs that are not in your database.
+    * **DO NOT Hallucinate.** If it's not in the system data, it doesn't exist for you.
+    * *Warm Exception:* You can still give general advice like "It's always good to consult your doctor just to be safe," but do not make claims about the specific drugs if the data is missing.
+
+---
+### **III. OUTPUT FORMAT: HTML ONLY (MANDATORY)**
 You exist in a web interface, so you **MUST USE HTML** for formatting.
 * **Bold:** Use `<b>text</b>` for drug names and important alerts.
 * **Lists:** Use `<ul>` and `<li>` for listing interactions clearly.
 * **New Lines:** Use `<br>` for spacing.
-
----
-### **III. SAFETY PROTOCOL (THE "RED LINE")**
-While you are sweet, you are strict about safety.
-* **EMERGENCY:** If the user mentions **chest pain, difficulty breathing, swelling, or fainting**:
-    * **Action:** Drop the casual tone. Use `[concerned]` tag.
-    * **Phrase:** "<b>This sounds like a medical emergency.</b> Please stop taking the medication and go to the ER immediately."
 
 ---
 ### **IV. EMOTION TAGS (YOUR FACIAL EXPRESSIONS)**
@@ -52,16 +53,18 @@ Start EVERY response with one of these tags to set your avatar's face:
 * `[blushing]`: ONLY when the user compliments you or says thank you.
 
 ---
-### **V. RESPONSE STRUCTURE (THE "WARM SANDWICH")**
+### **V. RESPONSE STRUCTURE**
 1.  **Tag:** `[tag]`
 2.  **The Warm Opener:**
     * Greet them by name.
-    * *Validate their feelings:* "Hello [Name], thank you for trusting me with this." or "Hi [Name], I can see why you're concerned."
-3.  **The "Meat" (Analysis):**
-    * Explain the interactions simply using `<b>` and `<ul>`.
+    * Validate their feelings.
+3.  **The Analysis (Meat):**
+    * If DB has data: "Here is what I found: ..."
+    * If DB is empty: "I'm sorry, my current database doesn't have information on this combination."
     * Focus on *what it means for them* (e.g., "This might make you dizzy," not just "Hypotension risk").
-4.  **The Caring Closer:**
-    * End with support. "Please take care," "I'm here if you need more help," or "Hope you feel better soon!"
+4.  **Closer:** * End with support. "Please take care," "I'm here if you need more help," or "Hope you feel better soon!"
+    * "Stay safe!" or "Please ask your real doctor to be sure."
+
 
 """
 
@@ -72,42 +75,48 @@ def get_karin_response(user_message, chat_history, language='en', drug_list=None
 
     # 1. RAG: CHECK NEO4J DATABASE
     context_injection = ""
-    # Cek apakah drug_list ada dan valid
+    
     if drug_list and isinstance(drug_list, list) and len(drug_list) > 1:
         try:
             interactions = get_drug_interactions_from_db(drug_list)
+            
             if interactions:
+                # FORMAT BARU: Menampilkan Nama Obat + ID
+                # Pastikan database.py mengembalikan 'id_a' dan 'id_b'
                 db_text = "".join([
-                    f"<li><b>{i['drug_a']} + {i['drug_b']}</b>: {i['description']}</li>"
+                    f"<li><b>{i['drug_a']} (ID: {i.get('id_a', 'N/A')}) + {i['drug_b']} (ID: {i.get('id_b', 'N/A')})</b>: {i['description']}</li>"
                     for i in interactions
                 ])
                 context_injection = (
-                    f"\n\n[SYSTEM DATA]: User drugs: {', '.join(drug_list)}.\n"
+                    f"\n\n[SYSTEM DATA - SOURCE: NEO4J DATABASE]:\n"
+                    f"User drugs: {', '.join(drug_list)}.\n"
                     f"INTERACTIONS FOUND: <ul>{db_text}</ul>\n"
-                    f"INSTRUCTION: Explain these interactions using HTML format."
+                    f"INSTRUCTION: Explain these interactions clearly using HTML. Always mention the Drug ID in parenthesis like 'Drug Name (ID: 123)' so the user knows exactly which drug is referred to."
                 )
             else:
-                context_injection = "\n\n[SYSTEM DATA]: No specific interactions found in DB."
+                context_injection = (
+                    f"\n\n[SYSTEM DATA - SOURCE: NEO4J DATABASE]:\n"
+                    f"User drugs: {', '.join(drug_list)}.\n"
+                    f"RESULT: 0 interactions found in the database.\n"
+                    f"INSTRUCTION: State clearly that your database DOES NOT have information on these specific drugs. Do NOT make up an answer."
+                )
         except Exception as db_err:
             print(f"Database Error (Skipping RAG): {db_err}")
-            context_injection = ""
+            context_injection = "\n\n[SYSTEM DATA]: Database error. State that you cannot access the data right now."
 
     final_message = user_message + context_injection
     
-    # Mulai Chat
     chat = model.start_chat(history=chat_history)
 
     try:
         response = chat.send_message(final_message)
         bot_text = response.text
 
-        # --- IMPROVED TAG CLEANING (Regex) ---
+        # --- TAG CLEANING ---
         emotion = "neutral" 
         message = bot_text
 
-        # Regex untuk menangkap tag emosi
         pattern = r'\[(neutral|happy|blushing|concerned|curious|annoyed|netral|senang|malu-malu|khawatir|penasaran|kesal)\]\s*:?'
-        
         match = re.search(pattern, bot_text, re.IGNORECASE)
 
         if match:
@@ -119,11 +128,8 @@ def get_karin_response(user_message, chat_history, language='en', drug_list=None
                 'khawatir': 'concerned', 'penasaran': 'curious', 'kesal': 'annoyed'
             }
             emotion = emotion_map.get(extracted_emotion, extracted_emotion)
-            
-            # Hapus tag dari pesan final
             message = re.sub(pattern, "", bot_text, count=1).strip()
 
-        # RETURN HARUS SEJAJAR DENGAN BLOK IF, TAPI DI DALAM TRY
         return message, emotion
 
     except Exception as e:

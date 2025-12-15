@@ -29,8 +29,8 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0px; /* Gambar dan Card nempel/tumpuk */
-    width: 90%;
-    max-width: 1000px;
+    width: 120%;
+    max-width: 1800px;
 }
 
 /* Gambar Karin Duduk */
@@ -42,7 +42,7 @@ body {
 }
 
 .hero-image {
-    max-height: 500px;
+    max-height: 950px;
     width: auto;
     /* Sedikit shadow biar pop-out */
     filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1)); 
@@ -50,20 +50,23 @@ body {
 
 /* Card Login di Kanan */
 .login-card {
-    flex: 0.8;
+    flex: 1.2;
+    min-width: 350px;
+    height: auto;
     background: rgba(255, 255, 255, 0.6); /* Transparan dikit kayak gambar */
     backdrop-filter: blur(10px);
-    padding: 40px;
+    padding: 100px;
     border-radius: var(--card-radius);
     text-align: center;
     box-shadow: 0 4px 20px rgba(0,0,0,0.05);
     border: 2px solid #fff;
-    margin-left: -50px; /* Efek overlap */
+    margin-left: -150px; /* Efek overlap */
+    margin-right: 80px;
     z-index: 1;
 }
 
 .brand-title {
-    font-size: 3em;
+    font-size: 4.5em;
     font-weight: 900;
     color: var(--primary-color);
     margin: 0;
@@ -81,7 +84,7 @@ body {
     display: inline-block;
     margin-bottom: 30px;
     font-weight: 700;
-    font-size: 0.9em;
+    font-size: 1.2em;
 }
 
 /* --- 2. MEDICATION LIST STYLING (Gambar 2) --- */

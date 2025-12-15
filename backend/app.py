@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 from dotenv import load_dotenv
 from core_logic import get_karin_response, KARIN_PROMPT
+from metrics import get_metrics
 
 load_dotenv()
 
@@ -78,6 +79,10 @@ def generate_audio():
     except requests.exceptions.RequestException as e:
         print(f"Error calling ElevenLabs API: {e}")
         return jsonify({"error": "Failed to generate audio"}), 500
+
+@app.route('/metrics', methods=['GET'])
+def metrics():
+    return jsonify(get_metrics())
 
 
 if __name__ == '__main__':

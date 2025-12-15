@@ -28,9 +28,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0px; /* Gambar dan Card nempel/tumpuk */
+    gap: 4px; /* Gambar dan Card nempel/tumpuk */
     width: 90%;
-    max-width: 1000px;
+    max-width: 1200px;
 }
 
 /* Gambar Karin Duduk */
@@ -42,7 +42,7 @@ body {
 }
 
 .hero-image {
-    max-height: 500px;
+    max-height: 790px;
     width: auto;
     /* Sedikit shadow biar pop-out */
     filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1)); 
@@ -50,15 +50,16 @@ body {
 
 /* Card Login di Kanan */
 .login-card {
-    flex: 0.8;
+    flex: 1.6;
     background: rgba(255, 255, 255, 0.6); /* Transparan dikit kayak gambar */
     backdrop-filter: blur(10px);
-    padding: 40px;
+    padding: 70px;
     border-radius: var(--card-radius);
     text-align: center;
     box-shadow: 0 4px 20px rgba(0,0,0,0.05);
     border: 2px solid #fff;
     margin-left: -50px; /* Efek overlap */
+    margin-right: 50px;
     z-index: 1;
 }
 
@@ -370,4 +371,34 @@ input[type="text"] {
 /* Jarak antar paragraf jika ada <br><br> atau <p> */
 .message p {
     margin: 5px 0;
+}
+
+#metrics-container {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    max-width: 800px;
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    border: 5px solid var(--primary-color);
+}
+
+#metrics-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#metrics-table th, #metrics-table td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+#metrics-table th {
+    text-align: left;
+    background-color: var(--primary-color);
+    color: white;
 }

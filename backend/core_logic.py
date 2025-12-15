@@ -6,6 +6,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 # Pastikan database.py ada. Jika belum setup DB, comment baris di bawah ini.
 from database import get_drug_interactions_from_db, get_drug_by_name, get_drug_ingredients, get_brand_drugs, search_drugs_by_keyword
+from metrics import update_metrics
 
 # --- CACHING LAYER ---
 class QueryCache:
@@ -80,7 +81,7 @@ You exist in a web interface, so you **MUST USE HTML** for formatting.
 ---
 ### **III. DRUG INFORMATION REQUIREMENTS (ALWAYS INCLUDE)**
 When discussing medications, you **MUST**:
-1. **Mention the Drug ID** - Include the database ID for each medication (e.g., "Paracetamol (ID: DRG001)")
+1. **Mention the Drug ID** - Include the database ID for each medication 
 2. **Handle Brand Names Confidently** - If the input provides ingredients for a brand (e.g., Panadol contains Paracetamol), treat it as a **known fact**. Do NOT say "I think" or "Possible ingredients." State clearly: "<b>[Brand Name]</b> contains <b>[Ingredient]</b>."
 3. **Synonym Handling** - **IMPORTANT:** Treat **Paracetamol** and **Acetaminophen** as the EXACT SAME DRUG. Never list them as two separate interactions. If one is mentioned, applies to the other.
 4. **Report Missing Drugs** - ONLY if a drug is truly missing from the provided context (no ID and no ingredients found), then say: "I couldn't find **[Drug Name]** in my database."
@@ -254,7 +255,7 @@ def get_ingredients_from_gemini(drug_name):
     # UPDATED PROMPT: Added synonym handling here too just in case
     prompt = f"""
     List the active ingredients (generic names) found in the drug or brand called '{drug_name}'.
-    IMPORTANT: If the ingredient is Acetaminophen, write 'Paracetamol'.
+    IMPORTANT: If the ingredient is Paracetamol, write 'Acetaminophen'.
     Return only a Python list of ingredient names, no explanations.
     Example: ['Paracetamol', 'Caffeine']
     """
@@ -293,26 +294,35 @@ def build_database_context(user_message, drug_list=None):
     drugs_to_search = [d.strip() for d in drugs_to_search if d.strip()]
     
     if not drugs_to_search:
-        return "", {"found_drugs": [], "not_found_drugs": [], "ingredient_found_drugs": [], "ingredient_interactions": []}
+        return "", {"found_drugs": [], "not_found_drugs": [], "ingredient_found_drugs": [], "ingredient_interactions": [], "interactions_found_db": 0, "interactions_found_llm": 0, "database_verifications": 0}
     
     # Step 3: Search database for all drugs
     search_results = search_drugs_in_database(drugs_to_search)
     found_drugs = search_results['found']
     initial_not_found = search_results['not_found']
 
+    database_verifications = len(found_drugs)
+    db_attempted = 1
+    db_successful = 1 if len(found_drugs) > 0 else 0
+
     # Step 4: Logic for Brand/Missing Drugs
     # We differentiate between "True Missing" (unknown) and "Brand Resolved" (known via Gemini)
     true_not_found_drugs = []
     brand_resolved_notes = []
-    
+
     ingredient_found_drugs = []
     ingredient_interactions = []
+    interactions_found_llm = 0
+    llm_attempted = len(initial_not_found)
+    llm_successful = 0
 
     if initial_not_found:
         for missing_drug in initial_not_found:
             ingredients = get_ingredients_from_gemini(missing_drug)
-            
+
             if ingredients:
+                interactions_found_llm += 1
+                llm_successful += 1
                 # SUCCESS: We found ingredients for this brand/drug
                 # We do NOT add this to 'true_not_found_drugs' so Karin won't say "I couldn't find it"
                 
@@ -343,6 +353,7 @@ def build_database_context(user_message, drug_list=None):
 
     # Step 5: Check for interactions among found drugs
     interactions = check_interactions_for_drugs(found_drugs) if found_drugs else []
+    interactions_found_db = len(found_drugs)
 
     # Step 6: Build context injection for Gemini
     context_parts = []
@@ -398,15 +409,23 @@ def build_database_context(user_message, drug_list=None):
             "found_drugs": [d.get('name') for d in found_drugs],
             "not_found_drugs": true_not_found_drugs,
             "ingredient_found_drugs": [d.get('name') for d in ingredient_found_drugs],
-            "ingredient_interactions": ingredient_interactions
+            "ingredient_interactions": ingredient_interactions,
+            "interactions_found_db": interactions_found_db,
+            "interactions_found_llm": interactions_found_llm,
+            "database_verifications": database_verifications,
+            "db_attempted": db_attempted,
+            "db_successful": db_successful,
+            "llm_attempted": llm_attempted,
+            "llm_successful": llm_successful
         }
         return final_context, metadata
 
     # No context parts -> return empty string and empty metadata
-    return "", {"found_drugs": [], "not_found_drugs": [], "ingredient_found_drugs": [], "ingredient_interactions": []}
+    return "", {"found_drugs": [], "not_found_drugs": [], "ingredient_found_drugs": [], "ingredient_interactions": [], "interactions_found_db": 0, "interactions_found_llm": 0, "database_verifications": 0}
 
 # --- MAIN LOGIC FUNCTION ---
 def get_karin_response(user_message, chat_history, language='en', drug_list=None):
+    start_time = time.time()
     if not user_message:
         return "Please tell me which medications you are taking.", "curious"
     
@@ -421,6 +440,10 @@ def get_karin_response(user_message, chat_history, language='en', drug_list=None
     try:
         response = chat.send_message(final_message)
         bot_text = response.text
+        response_time = time.time() - start_time
+
+        update_metrics(response_time, metadata.get("db_attempted", 0), metadata.get("db_successful", 0), metadata.get("llm_attempted", 0), metadata.get("llm_successful", 0), metadata.get("interactions_found_db", 0), metadata.get("interactions_found_llm", 0))
+
 
         # --- TAG CLEANING (Regex) ---
         emotion = "neutral" 

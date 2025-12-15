@@ -20,11 +20,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const langEnBtn = document.getElementById('lang-en');
     const langIdBtn = document.getElementById('lang-id');
 
+    // Metrics Elements
+    const metricsContainer = document.getElementById('metrics-container');
+    const metricsTable = document.getElementById('metrics-table').getElementsByTagName('tbody')[0];
+    const showMetricsBtn = document.getElementById('show-metrics-btn');
+    const closeMetricsBtn = document.getElementById('close-metrics-btn');
+
     // --- STATE VARIABLES ---
     let userName = '';
     let currentLanguage = 'en';
     let chatHistory = [];
-    const backendUrl = 'http://127.0.0.1:8000/chat';
+    const backendUrl = 'http://127.0.0.1:8000';
 
     // --- INITIAL ANIMATION ---
     if(loginCard) loginCard.classList.add('pop-out-enter');
@@ -63,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chatHistory.push({ "role": "user", "parts": [introMsg] });
 
         try {
-            const response = await fetch(backendUrl, {
+            const response = await fetch(`${backendUrl}/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -115,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chatHistory.push({ "role": "user", "parts": [messageText] });
 
         try {
-            const response = await fetch(backendUrl, {
+            const response = await fetch(`${backendUrl}/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -142,7 +148,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 4. LANGUAGE & UI HELPERS ---
+    // --- 4. METRICS LOGIC ---
+    async function updateMetrics() {
+        try {
+            const response = await fetch(`${backendUrl}/metrics`);
+            const data = await response.json();
+
+            // Clear existing table rows
+            metricsTable.innerHTML = '';
+
+            // Populate table with new data
+            for (const [key, value] of Object.entries(data)) {
+                const row = metricsTable.insertRow();
+                const cell1 = row.insertCell(0);
+                const cell2 = row.insertCell(1);
+                cell1.textContent = key;
+                cell2.textContent = value;
+            }
+        } catch (error) {
+            console.error("Error fetching metrics:", error);
+        }
+    }
+
+
+    function toggleMetrics() {
+        metricsContainer.classList.toggle('hidden');
+        if (!metricsContainer.classList.contains('hidden')) {
+            updateMetrics();
+        }
+    }
+
+    // --- 5. LANGUAGE & UI HELPERS ---
     function updateUIForLanguage() {
         if(langEnBtn && langIdBtn) {
             if (currentLanguage === 'en') {
@@ -184,6 +220,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if(langIdBtn) langIdBtn.addEventListener('click', () => { 
         currentLanguage = 'id'; updateUIForLanguage(); 
+    });
+
+    if(showMetricsBtn) showMetricsBtn.addEventListener('click', toggleMetrics);
+    if(closeMetricsBtn) closeMetricsBtn.addEventListener('click', () => {
+        metricsContainer.classList.add('hidden');
     });
 
     updateUIForLanguage();

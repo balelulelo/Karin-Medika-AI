@@ -64,6 +64,7 @@
                 <button id="lang-en" class="btn-small" style="padding: 5px 10px;">EN</button>
                 <button id="lang-id" class="btn-small" style="padding: 5px 10px;">ID</button>
             </div>
+            <button id="show-metrics-btn" class="btn-small" style="margin-top: 10px;">Show Metrics</button>
         </div>
 
         <div class="chat-interface">
@@ -75,6 +76,23 @@
                 <button id="send-btn"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
+    </div>
+
+    <div id="metrics-container" class="hidden">
+        <div style="position: relative;">
+            <h2>Metrics</h2>
+            <button id="close-metrics-btn" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
+        </div>
+        <table id="metrics-table">
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
     </div>
 
     <script src="app.js"></script>

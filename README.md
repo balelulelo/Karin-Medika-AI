@@ -1,26 +1,37 @@
-# YUNITA AI
+# KARIN MEDIKA AI
 
-<img width="1440" height="1024" alt="poster" src="https://github.com/user-attachments/assets/6a9eeb58-1698-4615-a7e2-4f4bd0e7a5be" />
+<img width="1440" height="1024" alt="PosterKarin" src="https://github.com/user-attachments/assets/c9d94f87-93da-4bef-85d2-c28bad4da250" />
 
 
-Meet Yunita! your friendly AI Chat partner.
 
-This repository is about an interactive AI Chatbot with a kind and friendly personality to provide an engaging conversation experience. Yunita is designed primarily for casual chatting and her personality-driven responses may not be factually accurate, particularly for technical topics. Please enjoy her for her character, not for her knowledge.
+Meet Karin! your caring medical AI Assistant.
+
+an interactive Virtual Pharmacist designed to help users manage their medication and prevent Polypharmacy Risk (adverse drug interactions).
+Karin is built with a **"Caring Big Sister"** persona. She provides health analysis in a warm, empathetic, and conversational tone, and makes medical information less intimidating.
+
+## Key Features:
+1. **Drug Interaction Checker:** Uses **Neo4j** graph database technology to detect potential interactions between multiple medications.
+2. **AI-Powered Analysis:** Powered by **Google Gemini 2.5 Flash**, providing natural language explanations of side effects and health advice.
+3. **Dynamic Emotion System:** The frontend changes Karin's avatar expressions (Happy, Concerned, Neutral) in real-time based on the context of the conversation.
+
 
 ## Tech Stack:
 
-### A. Frontend:
-1. HTML5
-2. CSS3
-3. Javascript
+### A. Backend
+* **Language:** Python3
+* **Framework:** Flask (API Server)
+* **AI Model:** Google Gemini (via `google-generativeai`)
+* **Database:** Neo4j (Graph Database for drug relationships)
 
-### B. Backend:
-1. Python
-2. Flask
-3. Google Generative AI 
 
-## Prequisite To Run This Project:
-1. Python3
-2. API Key from Google Studio
-3. API Key from ElevenLabs or similar TTS API Key
+### B. Frontend
+* HTML5, CSS3, Vanilla JavaScript
+
+## Installation & Setup:
+
+### Prerequisites
+1.  Python 3.8 or higher.
+2.  A **Neo4j** Database instance (Desktop or AuraDB).
+3.  API Keys for **Google Gemini** and **ElevenLabs**.
+
 

@@ -65,6 +65,23 @@
                 <button id="lang-id" class="btn-small" style="padding: 5px 10px;">ID</button>
             </div>
             <button id="show-metrics-btn" class="btn-small" style="margin-top: 10px;">Show Metrics</button>
+            
+            <!-- Feedback Section -->
+            <div id="feedback-section" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                <h4 style="margin: 0 0 10px 0; color: var(--primary-color);">Was this helpful?</h4>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="feedback-like" class="btn-small" style="background-color: #4CAF50;">
+                        <i class="fas fa-thumbs-up"></i>
+                    </button>
+                    <button id="feedback-dislike" class="btn-small" style="background-color: #f44336;">
+                        <i class="fas fa-thumbs-down"></i>
+                    </button>
+                </div>
+                <div id="feedback-status" style="margin-top: 8px; font-size: 0.8em; color: #666;"></div>
+            </div>
+            
+            <!-- Feedback Stats Button -->
+            <button id="show-feedback-stats-btn" class="btn-small" style="margin-top: 10px;">Show Feedback Stats</button>
         </div>
 
         <div class="chat-interface">
@@ -93,6 +110,38 @@
             <tbody>
             </tbody>
         </table>
+    </div>
+
+    <!-- Feedback Stats Container -->
+    <div id="feedback-stats-container" class="hidden">
+        <div style="position: relative;">
+            <h2>Feedback Statistics</h2>
+            <button id="close-feedback-stats-btn" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
+        </div>
+        <div id="feedback-stats-content" style="text-align: center;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div style="background: #e8f5e9; padding: 15px; border-radius: 10px;">
+                    <div style="font-size: 2em; font-weight: bold; color: #4CAF50;" id="stat-likes">0</div>
+                    <div style="font-size: 0.9em; color: #666;">Likes</div>
+                </div>
+                <div style="background: #ffebee; padding: 15px; border-radius: 10px;">
+                    <div style="font-size: 2em; font-weight: bold; color: #f44336;" id="stat-dislikes">0</div>
+                    <div style="font-size: 0.9em; color: #666;">Dislikes</div>
+                </div>
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 10px;">
+                    <div style="font-size: 2em; font-weight: bold; color: #2196F3;" id="stat-neutrals">0</div>
+                    <div style="font-size: 0.9em; color: #666;">No Response</div>
+                </div>
+                <div style="background: #fff3e0; padding: 15px; border-radius: 10px;">
+                    <div style="font-size: 2em; font-weight: bold; color: #FF9800;" id="stat-total">0</div>
+                    <div style="font-size: 0.9em; color: #666;">Total Questions</div>
+                </div>
+            </div>
+            <div style="background: linear-gradient(135deg, var(--primary-color), #5C6BC0); color: white; padding: 20px; border-radius: 15px;">
+                <div style="font-size: 3em; font-weight: bold;" id="stat-accuracy">0%</div>
+                <div style="font-size: 1em;">Accuracy (Helpful Rate)</div>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>

@@ -402,3 +402,36 @@ input[type="text"] {
     background-color: var(--primary-color);
     color: white;
 }
+
+/* --- Feedback Stats Container --- */
+#feedback-stats-container {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    max-width: 600px;
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    border: 5px solid var(--primary-color);
+    z-index: 50;
+}
+
+#feedback-stats-container h2 {
+    color: var(--primary-color);
+    margin-top: 0;
+}
+
+/* Feedback buttons hover effect */
+#feedback-like:hover, #feedback-dislike:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Disabled feedback button state */
+.feedback-submitted {
+    opacity: 0.5;
+    pointer-events: none;
+}

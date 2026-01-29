@@ -5,6 +5,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from core_logic import get_karin_response, KARIN_PROMPT
 from metrics import get_metrics
+from feedback import get_feedback_stats, update_feedback, increment_question
 
 load_dotenv()
 
@@ -83,6 +84,59 @@ def generate_audio():
 @app.route('/metrics', methods=['GET'])
 def metrics():
     return jsonify(get_metrics())
+
+
+# --- FEEDBACK ENDPOINTS ---
+
+@app.route('/feedback', methods=['POST'])
+def feedback():
+    """
+    Receive user feedback for bot responses.
+    
+    Request Body:
+        {
+            "rating": "like" | "dislike" | "neutral"
+        }
+    
+    Returns:
+        {
+            "success": true,
+            "stats": {...}
+        }
+    """
+    data = request.json
+    rating = data.get('rating', '')
+    
+    try:
+        stats = update_feedback(rating)
+        return jsonify({
+            "success": True,
+            "message": "Feedback recorded successfully",
+            "stats": stats
+        })
+    except ValueError as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+
+
+@app.route('/feedback/stats', methods=['GET'])
+def feedback_stats():
+    """
+    Get feedback statistics including accuracy and total questions.
+    
+    Returns:
+        {
+            "likes": int,
+            "dislikes": int,
+            "neutrals": int,
+            "total_questions": int,
+            "accuracy": float,
+            "satisfaction_rate": float
+        }
+    """
+    return jsonify(get_feedback_stats())
 
 
 if __name__ == '__main__':

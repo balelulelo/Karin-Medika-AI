@@ -25,11 +25,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const metricsTable = document.getElementById('metrics-table').getElementsByTagName('tbody')[0];
     const showMetricsBtn = document.getElementById('show-metrics-btn');
     const closeMetricsBtn = document.getElementById('close-metrics-btn');
+    
+    // Feedback Elements
+    const feedbackLikeBtn = document.getElementById('feedback-like');
+    const feedbackDislikeBtn = document.getElementById('feedback-dislike');
+    const feedbackStatus = document.getElementById('feedback-status');
+    const feedbackStatsContainer = document.getElementById('feedback-stats-container');
+    const showFeedbackStatsBtn = document.getElementById('show-feedback-stats-btn');
+    const closeFeedbackStatsBtn = document.getElementById('close-feedback-stats-btn');
 
     // --- STATE VARIABLES ---
     let userName = '';
     let currentLanguage = 'en';
     let chatHistory = [];
+    let feedbackSubmitted = false; // Track if feedback was given for current response
     const backendUrl = 'http://127.0.0.1:8000';
 
     // --- INITIAL ANIMATION ---
@@ -113,6 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const messageText = userInput.value.trim();
         if (!messageText) return;
 
+        // Reset feedback state for new conversation
+        resetFeedbackState();
+        
         appendMessage('user', messageText);
         userInput.value = '';
         userInput.disabled = true;
@@ -178,6 +190,68 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- 6. FEEDBACK LOGIC ---
+    async function submitFeedback(rating) {
+        if (feedbackSubmitted) return; // Prevent multiple feedback submissions
+        
+        try {
+            const response = await fetch(`${backendUrl}/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rating: rating })
+            });
+            
+            if (response.ok) {
+                feedbackSubmitted = true;
+                // Update UI to show feedback was submitted
+                feedbackLikeBtn.classList.add('feedback-submitted');
+                feedbackDislikeBtn.classList.add('feedback-submitted');
+                
+                if (rating === 'like') {
+                    feedbackStatus.textContent = "Thanks for your feedback! 😊";
+                    feedbackStatus.style.color = '#4CAF50';
+                } else {
+                    feedbackStatus.textContent = "Thanks for your feedback. We'll improve! 🙏";
+                    feedbackStatus.style.color = '#f44336';
+                }
+            }
+        } catch (error) {
+            console.error("Error submitting feedback:", error);
+            feedbackStatus.textContent = "Error submitting feedback";
+        }
+    }
+
+    async function updateFeedbackStats() {
+        try {
+            const response = await fetch(`${backendUrl}/feedback/stats`);
+            const data = await response.json();
+            
+            // Update stat values
+            document.getElementById('stat-likes').textContent = data.likes;
+            document.getElementById('stat-dislikes').textContent = data.dislikes;
+            document.getElementById('stat-neutrals').textContent = data.neutrals;
+            document.getElementById('stat-total').textContent = data.total_questions;
+            document.getElementById('stat-accuracy').textContent = data.accuracy + '%';
+        } catch (error) {
+            console.error("Error fetching feedback stats:", error);
+        }
+    }
+
+    function toggleFeedbackStats() {
+        feedbackStatsContainer.classList.toggle('hidden');
+        if (!feedbackStatsContainer.classList.contains('hidden')) {
+            updateFeedbackStats();
+        }
+    }
+
+    // Reset feedback state when new message is sent
+    function resetFeedbackState() {
+        feedbackSubmitted = false;
+        feedbackLikeBtn.classList.remove('feedback-submitted');
+        feedbackDislikeBtn.classList.remove('feedback-submitted');
+        feedbackStatus.textContent = '';
+    }
+
     // --- 5. LANGUAGE & UI HELPERS ---
     function updateUIForLanguage() {
         if(langEnBtn && langIdBtn) {
@@ -225,6 +299,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if(showMetricsBtn) showMetricsBtn.addEventListener('click', toggleMetrics);
     if(closeMetricsBtn) closeMetricsBtn.addEventListener('click', () => {
         metricsContainer.classList.add('hidden');
+    });
+    
+    // Feedback event listeners
+    if(feedbackLikeBtn) feedbackLikeBtn.addEventListener('click', () => submitFeedback('like'));
+    if(feedbackDislikeBtn) feedbackDislikeBtn.addEventListener('click', () => submitFeedback('dislike'));
+    if(showFeedbackStatsBtn) showFeedbackStatsBtn.addEventListener('click', toggleFeedbackStats);
+    if(closeFeedbackStatsBtn) closeFeedbackStatsBtn.addEventListener('click', () => {
+        feedbackStatsContainer.classList.add('hidden');
     });
 
     updateUIForLanguage();

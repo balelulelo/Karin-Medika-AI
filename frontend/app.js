@@ -280,9 +280,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateKarinImage(emotion) {
-        const valid = ['neutral', 'happy', 'blushing', 'concerned', 'curious'];
+        const valid = ['neutral', 'happy', 'blushing', 'concerned', 'curious', 'annoyed'];
         const imgName = valid.includes(emotion) ? emotion : 'neutral';
-        if(karinImage) karinImage.src = `images/${imgName}.png`;
+        if(karinImage) karinImage.src = `images/${imgName}.webp`;
     }
 
     // --- EVENT LISTENERS ---
